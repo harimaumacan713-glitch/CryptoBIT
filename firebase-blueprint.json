@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Coin": {
+      "title": "Crypto Coin",
+      "description": "Represents a crypto token or coin on the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "symbol": { "type": "string" },
+        "totalSupply": { "type": "number" },
+        "logo": { "type": "string" },
+        "description": { "type": "string" },
+        "website": { "type": "string" },
+        "twitter": { "type": "string" },
+        "initialPrice": { "type": "number" },
+        "listingDate": { "type": "string", "format": "date-time" },
+        "minBuy": { "type": "number" },
+        "maxBuy": { "type": "number" },
+        "targetFund": { "type": "number" },
+        "status": { "type": "string", "enum": ["Upcoming", "Live", "Listed"] },
+        "soldCount": { "type": "number" },
+        "investorCount": { "type": "number" },
+        "creatorId": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "isHot": { "type": "boolean" }
+      },
+      "required": ["id", "name", "symbol", "totalSupply", "initialPrice", "listingDate", "status", "creatorId"]
+    },
+    "Order": {
+      "title": "IPO Order",
+      "description": "An order for a coin during its IPO phase",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "coinId": { "type": "string" },
+        "coinSymbol": { "type": "string" },
+        "amount": { "type": "number" },
+        "price": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Success", "Refunded"] },
+        "listingDate": { "type": "string", "format": "date-time" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "coinId", "amount", "price", "status"]
+    },
+    "User": {
+       "title": "User Profile",
+       "description": "Public profile of a user",
+       "type": "object",
+       "properties": {
+         "username": { "type": "string" },
+         "avatar": { "type": "string" },
+         "isVerified": { "type": "boolean" }
+       }
+    }
+  },
+  "firestore": {
+    "/coins/{coinId}": {
+      "schema": "Coin",
+      "description": "Collection of coins and IPOs"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of user IPO orders"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    }
+  }
+}

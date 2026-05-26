@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidCoin(data) {
+      return data.name is string && data.symbol is string && data.initialPrice is number;
+    }
+
+    function isValidOrder(data) {
+      return data.userId == request.auth.uid && data.amount is number && data.price is number;
+    }
+
+    match /coins/{coinId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidCoin(request.resource.data);
+      allow update: if isSignedIn() && (
+        // Allow updating soldCount/investorCount (Public contribution)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soldCount', 'investorCount']) ||
+        // Allow creator to update their coin
+        resource.data.creatorId == request.auth.uid
+      );
+    }
+
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidOrder(request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+  }
+}

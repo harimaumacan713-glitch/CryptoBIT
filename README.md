@@ -1,11 +1,52 @@
-<div align="center">
+# CryptoBit Exchange
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Full-stack cryptocurrency exchange platform built with React, Tailwind CSS, and Firebase. Featuring real-time price tracking via Binance WebSocket API and a built-in Launchpad for Crypto IPOs.
 
-  <h1>Built with AI Studio</h2>
+## 🚀 Features
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Real-Time Data**: Live price updates for BTC, ETH, SOL, and more using direct Binance WebSocket integration (no API key required).
+- **Crypto IPO Launchpad**: Create and launch new tokens. Users can submit project details, supply, and IPO pricing.
+- **IPO Center**: Browse upcoming and live projects, with real-time fundraising progress and automated countdown timers.
+- **Full-Stack Firebase**:
+    - **Authentication**: Google Social Login.
+    - **Firestore**: Persistent storage for coins, orders, and user profiles.
+    - **Security**: Robust Firestore rules for data integrity.
+- **Interactive Orderbook**: Live synthetic orderbook visualization.
+- **Portfolio Tracking**: Monitor your holdings and IPO subscriptions in one place.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## 🛠️ Tech Stack
 
-</div>
+- **Frontend**: React 18, Vite, Tailwind CSS.
+- **Backend/Database**: Firebase (Auth & Firestore).
+- **Animations**: Framer Motion.
+- **Icons**: Lucide React.
+- **Charts**: Recharts.
+- **Data Source**: Binance WebSocket API.
+
+## 📦 Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <your-repo-url>
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Configure Firebase:
+   Edit `src/components/FirebaseProvider.tsx` and ensure the `firebaseConfig` matches your Firebase project credentials.
+
+4. Run development server:
+   ```bash
+   npm run dev
+   ```
+
+## 🔐 Deployment
+
+This app is optimized for deployment on **Cloud Run** or any static hosting service (for the frontend). Note that because it uses a custom Firebase config, you must authorize your production domain in the Firebase Console under **Authentication > Settings > Authorized Domains**.
+
+## 📄 License
+
+Apache-2.0
