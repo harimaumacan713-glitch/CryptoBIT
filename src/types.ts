@@ -75,6 +75,17 @@ export interface OrderBookData {
   };
 }
 
+export interface UserProfile {
+  id: string;
+  username: string;
+  avatar: string;
+  balance: number;
+  assets: Record<string, number>;
+  assetsInvested?: Record<string, number>;
+  isVerified: boolean;
+  walletAddress?: string;
+}
+
 export interface Post {
   id: string;
   author: {

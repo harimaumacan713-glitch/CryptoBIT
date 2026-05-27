@@ -7,42 +7,27 @@ import { MoreVertical, X, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useState } from 'react';
 import { useFirebase } from './FirebaseProvider';
 
-const mockHoldings = [
-  {
-    symbol: 'BTC',
-    isVerified: true,
-    logo: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e3a234d137f8f9037c220cc33b957b/128/color/btc.png',
-    balance: '2.789',
-    available: '2.789',
-    avgPrice: '62,100.20',
-    currentPrice: '64,230.50',
-    invested: '173,197,457',
-    marketValue: '179,138,864',
-    potentialPL: '+5,941,407',
-    percentage: '+3.43%',
-    isPositive: true
-  },
-  {
-    symbol: 'ETH',
-    isVerified: false,
-    logo: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e3a234d137f8f9037c220cc33b957b/128/color/eth.png',
-    balance: '1,415',
-    available: '1,415',
-    avgPrice: '3,125.25',
-    currentPrice: '3,450.75',
-    invested: '4,422,228',
-    marketValue: '4,882,811',
-    potentialPL: '+460,583',
-    percentage: '+10.41%',
-    isPositive: true
-  },
-];
+const MOCK_PRICES: Record<string, number> = {
+  'USD': 1,
+  'BTC': 96345.75,
+  'ETH': 2760.00,
+  'USDT': 1.00,
+  'AIX': 0.25,
+  'META': 0.05,
+  'NOVA': 1.25,
+  'GRN': 0.1,
+  'DFC': 0.5
+};
+
+import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
+import { WATCHLIST_COINS } from '../utils/constants';
 
 export default function Portfolio() {
-  const { orders, user } = useFirebase();
+  const { orders, user, userProfile } = useFirebase();
+  const cryptos = useRealTimeCrypto(WATCHLIST_COINS);
   const [activeTab, setActiveTab] = useState('Holdings');
 
-  if (!user) {
+  if (!user || !userProfile) {
     return (
       <div className="flex flex-col items-center justify-center p-20 bg-white border border-gray-200 rounded-sm shadow-sm mt-4">
         <Clock className="w-12 h-12 text-[#00AE64] mb-4 animate-pulse" />
@@ -51,6 +36,25 @@ export default function Portfolio() {
       </div>
     );
   }
+
+  let totalInvested = 0;
+  let totalCurrentValue = 0;
+
+  // Compute portfolio metrics
+  const holdEntries = (Object.entries(userProfile.assets || {}) as [string, number][]).filter(([_, amt]) => amt > 0);
+  holdEntries.forEach(([symbol, balance]) => {
+    const cryptoInfo = cryptos.find(c => c.symbol === symbol);
+    const price = cryptoInfo ? cryptoInfo.price : (MOCK_PRICES[symbol] || 0.1);
+    const invested = userProfile.assetsInvested?.[symbol] || (balance * (price * 0.9));
+    const currentVal = balance * price;
+    totalInvested += invested;
+    totalCurrentValue += currentVal;
+  });
+
+  const totalPl = totalCurrentValue - totalInvested;
+  const totalPlPercentage = totalInvested > 0 ? (totalPl / totalInvested) * 100 : 0;
+  const isTotalPositive = totalPl >= 0;
+  const totalEquity = userProfile.balance + totalCurrentValue;
 
   return (
     <div className="mt-4 space-y-4">
@@ -74,11 +78,11 @@ export default function Portfolio() {
 
       <div className="grid grid-cols-1 md:grid-cols-5 bg-white border border-gray-200 rounded-sm overflow-hidden divide-x divide-gray-100 shadow-sm">
         <div className="p-4 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold text-gray-900">2,911,117</span>
+          <span className="text-sm font-bold text-gray-900">${userProfile.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">Virtual Balance</span>
         </div>
         <div className="p-4 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold text-gray-900">91,273,500</span>
+          <span className="text-sm font-bold text-gray-900">${totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">Invested</span>
         </div>
         <div className="p-4 flex flex-col items-center justify-center">
@@ -86,11 +90,13 @@ export default function Portfolio() {
           <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">IPO Orders</span>
         </div>
         <div className="p-4 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold text-[#00AE64] font-black">+$5,142,392 (+5.6%)</span>
+          <span className={`text-sm font-bold font-black ${isTotalPositive ? 'text-[#00AE64]' : 'text-red-500'}`}>
+            {isTotalPositive ? '+' : ''}${totalPl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ({isTotalPositive ? '+' : ''}{totalPlPercentage.toFixed(2)}%)
+          </span>
           <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">Total P/L</span>
         </div>
         <div className="p-4 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold text-gray-900">96,415,892</span>
+          <span className="text-sm font-bold text-gray-900">${totalEquity.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">Total Equity</span>
         </div>
       </div>
@@ -111,32 +117,46 @@ export default function Portfolio() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {mockHoldings.map((item) => (
-                  <tr key={item.symbol} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-gray-50 rounded-full border border-gray-100 p-1 flex items-center justify-center overflow-hidden">
-                           <img src={item.logo} alt={item.symbol} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                        </div>
-                        <span className="font-black text-sm text-gray-900">{item.symbol}</span>
-                        {item.isVerified && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">{item.balance}</td>
-                    <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${item.avgPrice}</td>
-                    <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${item.currentPrice}</td>
-                    <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${item.invested}</td>
-                    <td className={`px-4 py-4 text-sm font-black text-right tabular-nums ${item.isPositive ? 'text-[#00AE64]' : 'text-red-500'}`}>
-                      {item.potentialPL} ({item.percentage})
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                         <button className="text-gray-300 hover:text-gray-600"><MoreVertical className="w-4 h-4" /></button>
-                         <button className="bg-red-500 text-white p-1 rounded shadow-sm hover:bg-red-600 transition-colors"><X className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {Object.keys(userProfile.assets || {}).length === 0 ? (
+                   <tr>
+                     <td colSpan={7} className="py-20 text-center text-gray-400 text-sm italic">You don't hold any assets yet. Buy some in Crypto IPO.</td>
+                   </tr>
+                ) : (
+                  (Object.entries(userProfile.assets || {}) as [string, number][]).filter(([_, amt]) => amt > 0).map(([symbol, balance]) => {
+                    const cryptoInfo = cryptos.find(c => c.symbol === symbol);
+                    const price = cryptoInfo ? cryptoInfo.price : (MOCK_PRICES[symbol] || 0.1);
+                    const invested = userProfile.assetsInvested?.[symbol] || (balance * (price * 0.9)); 
+                    const currentVal = balance * price;
+                    const pl = currentVal - invested;
+                    const percentage = invested > 0 ? (pl / invested) * 100 : 0;
+                    const isPositive = pl >= 0;
+
+                    return (
+                      <tr key={symbol} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-gray-50 rounded-full border border-gray-100 p-1 flex items-center justify-center overflow-hidden">
+                               <img src={cryptoInfo?.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${symbol}`} alt={symbol} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                            </div>
+                            <span className="font-black text-sm text-gray-900">{symbol}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">{balance.toLocaleString()}</td>
+                        <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${invested > 0 ? (invested / balance).toLocaleString(undefined, { maximumFractionDigits: 4 }) : 'N/A'}</td>
+                        <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+                        <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${invested.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                        <td className={`px-4 py-4 text-sm font-black text-right tabular-nums ${isPositive ? 'text-[#00AE64]' : 'text-red-500'}`}>
+                          {isPositive ? '+' : ''}{pl.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({isPositive ? '+' : ''}{percentage.toFixed(2)}%)
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                             <button className="text-gray-300 hover:text-gray-600"><MoreVertical className="w-4 h-4" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

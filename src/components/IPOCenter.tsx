@@ -31,9 +31,10 @@ export default function IPOCenter() {
         status: 'Pending',
         listingDate
       });
-      alert(`Pre-order for ${symbol} placed successfully!`);
+      alert(`Pre-order for ${symbol} placed successfully! Check your IPO Orders in Portfolio.`);
       setSelectedCoin(null);
-    } catch (err) {
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
       console.error(err);
     }
   };
@@ -70,8 +71,8 @@ export default function IPOCenter() {
             
             <div className="p-6">
               <div className="flex gap-4 items-start mb-6">
-                <div className="w-16 h-16 bg-gray-50 rounded-lg p-2 border border-gray-100 flex items-center justify-center shrink-0">
-                  <img src={coin.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${coin.symbol}`} alt={coin.name} className="w-full h-full object-contain" />
+                <div className="w-16 h-16 bg-gray-50 rounded-lg p-3 border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                  <img src={coin.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${coin.symbol}`} alt={coin.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

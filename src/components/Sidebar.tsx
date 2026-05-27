@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 
 export default function Sidebar() {
@@ -13,7 +13,7 @@ export default function Sidebar() {
     price: 64206.35,
     change: 44.30,
     changePercent: 0.72,
-    logo: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e3a234d137f8f9037c220cc33b957b/128/color/btc.png',
+    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/btc.png',
     sparkline: Array.from({ length: 20 }, (_, i) => ({ value: 64100 + i * 5 }))
   }]);
 
@@ -60,10 +60,11 @@ export default function Sidebar() {
         </div>
         <div className="h-24 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={Array.from({ length: 20 }, (_, i) => ({ val: 64100 + i * 5 + Math.random() * 50 }))}>
+            <LineChart data={btcData.sparkline}>
+              <YAxis domain={['dataMin', 'dataMax']} hide />
               <Line 
                 type="monotone" 
-                dataKey="val" 
+                dataKey="value" 
                 stroke="#00AE64" 
                 strokeWidth={2} 
                 dot={false} 

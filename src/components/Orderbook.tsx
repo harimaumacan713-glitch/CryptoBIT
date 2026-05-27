@@ -14,7 +14,7 @@ const initialOrderBooks: OrderBookData[] = [
     price: 64230.50,
     change: -1240.20,
     changePercent: -1.89,
-    logo: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e3a234d137f8f9037c220cc33b957b/128/color/btc.png',
+    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/btc.png',
     stats: {
       open: '65,470.70',
       high: '66,120.00',
@@ -31,7 +31,7 @@ const initialOrderBooks: OrderBookData[] = [
     price: 3450.75,
     change: 160.20,
     changePercent: 4.87,
-    logo: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e3a234d137f8f9037c220cc33b957b/128/color/eth.png',
+    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/eth.png',
     stats: {
       open: '3,290.55',
       high: '3,510.00',
@@ -48,7 +48,7 @@ const initialOrderBooks: OrderBookData[] = [
     price: 145.20,
     change: 5.40,
     changePercent: 3.86,
-    logo: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e3a234d137f8f9037c220cc33b957b/128/color/sol.png',
+    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/sol.png',
     stats: {
       open: '139.80',
       high: '148.50',

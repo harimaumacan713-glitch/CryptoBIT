@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useState } from 'react';
 import Header from './components/Header';
 import Navbar from './components/Navbar';
 import TrendingStocks from './components/TrendingStocks';
@@ -14,15 +15,29 @@ import Portfolio from './components/Portfolio';
 import Orderbook from './components/Orderbook';
 import Launchpad from './components/Launchpad';
 import IPOCenter from './components/IPOCenter';
-import { useState } from 'react';
+import BrokerAnalysis from './components/BrokerAnalysis';
+import Watchlist from './components/Watchlist';
+import ProfilePage from './components/ProfilePage';
+import SplashLoginScreen from './components/SplashLoginScreen';
 import { Clock, History, Flame, Diamond, Truck, Calendar, Headphones, MoreHorizontal, LayoutPanelLeft } from 'lucide-react';
+import { useFirebase } from './components/FirebaseProvider';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Stream');
+  const [hasCompletedSplash, setHasCompletedSplash] = useState(false);
+  const { user, loading } = useFirebase();
+
+  if (loading) {
+     return <div className="min-h-screen bg-[#0A0E17]" />;
+  }
+
+  if (!hasCompletedSplash || !user) {
+    return <SplashLoginScreen onLoginSuccess={() => setHasCompletedSplash(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] text-gray-900 font-sans selection:bg-[#00AE64]/30">
-      <Header />
+      <Header setActiveTab={setActiveTab} />
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="max-w-[1400px] mx-auto px-4 pb-12 flex gap-6">
@@ -63,10 +78,16 @@ export default function App() {
             <Portfolio />
           ) : activeTab === 'Orderbook' ? (
             <Orderbook />
+          ) : activeTab === 'Watchlist' ? (
+            <Watchlist />
+          ) : activeTab === 'Profile' ? (
+            <ProfilePage />
           ) : activeTab === 'Create Coin' ? (
              <Launchpad onComplete={() => setActiveTab('Crypto IPO')} />
           ) : activeTab === 'Crypto IPO' ? (
              <IPOCenter />
+          ) : activeTab === 'Broker Analysis' ? (
+             <div className="mt-4"><BrokerAnalysis /></div>
           ) : (
             <div className="flex flex-col items-center justify-center p-20 bg-white border border-gray-200 rounded-sm shadow-sm mt-4">
                <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest">{activeTab} Section</h2>

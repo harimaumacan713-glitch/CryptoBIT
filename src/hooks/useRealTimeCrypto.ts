@@ -13,7 +13,11 @@ export function useRealTimeCrypto(initialData: CryptoData[]) {
   useEffect(() => {
     // Binance WebSocket for individual symbol tickers
     // Format: wss://stream.binance.com:9443/ws/btcusdt@ticker/ethusdt@ticker...
-    const streams = initialData.map(c => `${c.symbol.toLowerCase()}usdt@ticker`).join('/');
+    const streams = initialData.map(c => {
+      // Fix for symbols like TON (which might be TONUSDT or something else on Binance)
+      // Actually Binance has TONUSDT
+      return `${c.symbol.toLowerCase()}usdt@ticker`;
+    }).join('/');
     const url = `wss://stream.binance.com:9443/ws/${streams}`;
 
     ws.current = new WebSocket(url);
