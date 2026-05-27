@@ -33,7 +33,8 @@ export default function WhaleTracker() {
     if (!db) return;
     const q = query(collection(db, 'liveTransactions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTransaction));
+      let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTransaction));
+      txs = txs.filter(tx => tx.type === 'BUY' || tx.type === 'SELL');
       txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setLiveTransactions(txs.slice(0, 100));
     });
@@ -47,11 +48,11 @@ export default function WhaleTracker() {
     }
   }, [liveTransactions]);
 
-  const filters = ['All', 'BUY', 'SELL', 'TRANSFER', 'DEPOSIT', 'BTC', 'ETH'];
+  const filters = ['All', 'BUY', 'SELL', 'BTC', 'ETH'];
 
   const filteredTx = liveTransactions.filter(tx => {
     if (filter === 'All') return true;
-    if (filter === 'BUY' || filter === 'SELL' || filter === 'TRANSFER' || filter === 'DEPOSIT') {
+    if (filter === 'BUY' || filter === 'SELL') {
       return tx.type === filter;
     }
     return tx.coin === filter;

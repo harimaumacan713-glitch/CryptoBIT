@@ -31,69 +31,47 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
   };
 
   return (
-    <div className="fixed inset-0 min-h-screen bg-[#0A0E17] flex items-center justify-center overflow-hidden z-[100]">
+    <div className="fixed inset-0 min-h-screen bg-[#0A0E17] flex items-center justify-center overflow-hidden z-[100] perspective-[1200px]">
       {/* Dynamic Background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[20%] left-[20%] w-96 h-96 bg-[#00AE64]/20 rounded-full blur-[100px] animate-pulse"></div>
-        <div className="absolute bottom-[20%] right-[20%] w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <iframe 
+          src="https://my.spline.design/ethereumscrollanimation-jdRleXSrAESqwtBugEQyvYhH/" 
+          frameBorder="0" 
+          width="100%" 
+          height="100%" 
+          className="absolute top-0 left-0 w-[calc(100%+80px)] h-[calc(100%+80px)] pointer-events-auto"
+        ></iframe>
+        <div className="absolute inset-0 bg-[#0A0E17]/40 pointer-events-none"></div>
+
+        <div className="absolute top-[20%] left-[20%] w-96 h-96 bg-[#00AE64]/20 rounded-full blur-[100px] animate-pulse pointer-events-none"></div>
+        <div className="absolute bottom-[20%] right-[20%] w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-1000 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 pointer-events-none"></div>
+        
+        {/* Floating background particles */}
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: "150%" }}
+            animate={{ opacity: [0, 1, 0], y: "-50%" }}
+            transition={{ duration: 5 + Math.random() * 5, repeat: Infinity, delay: Math.random() * 5, ease: "linear" }}
+            className="absolute bg-[#00AE64] rounded-full blur-sm pointer-events-none"
+            style={{
+              left: `${Math.random() * 100}%`,
+              width: `${Math.random() * 6 + 2}px`,
+              height: `${Math.random() * 6 + 2}px`,
+            }}
+          />
+        ))}
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-5xl px-6">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full max-w-5xl px-6 pointer-events-none">
         
-        {/* Abstract 3D Central Graphic */}
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0, rotateY: 90 }}
-          animate={{ scale: showLogin ? 0.6 : 1, opacity: 1, rotateY: 0, y: showLogin ? -100 : 0 }}
-          transition={{ duration: 1.5, type: 'spring', bounce: 0.4 }}
-          className="relative flex items-center justify-center"
-        >
-          {/* Core Sphere */}
-          <motion.div 
-             animate={{ rotate: 360 }}
-             transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-             className="w-48 h-48 sm:w-64 sm:h-64 rounded-full border border-[#00AE64]/30 bg-gradient-to-tr from-[#00AE64]/20 to-transparent flex items-center justify-center backdrop-blur-md shadow-[0_0_50px_#00AE6440]"
-          >
-              <Globe2 className="w-24 h-24 text-[#00AE64] opacity-80" />
-          </motion.div>
-          
-          {/* Orbiting Rings */}
-          <motion.div 
-             animate={{ rotateX: 360, rotateY: 360 }}
-             transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-             className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full border-t-2 border-l-2 border-blue-500/50"
-             style={{ transformStyle: 'preserve-3d' }}
-          />
-          <motion.div 
-             animate={{ rotateX: -360, rotateZ: 360 }}
-             transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-             className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full border-b-2 border-r-2 border-[#00AE64]/50"
-             style={{ transformStyle: 'preserve-3d' }}
-          />
-
-          {/* Floating Elements */}
-          <motion.div 
-            animate={{ y: [-10, 10, -10] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -top-10 left-0 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-white flex items-center gap-2"
-          >
-             <Zap className="w-4 h-4 text-yellow-400" /> Web3 Native
-          </motion.div>
-          <motion.div 
-            animate={{ y: [10, -10, 10] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute -bottom-10 right-0 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-white flex items-center gap-2"
-          >
-             <ShieldCheck className="w-4 h-4 text-[#00AE64]" /> Bank-Grade Security
-          </motion.div>
-        </motion.div>
-
         {/* Title Text */}
         <motion.div 
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: showLogin ? -80 : 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="text-center mt-12"
+          initial={{ opacity: 0, top: "50%", translateY: "-50%" }}
+          animate={{ opacity: 1, top: showLogin ? "10%" : "50%", translateY: showLogin ? "0%" : "-50%" }}
+          transition={{ duration: 1, delay: 0.5, type: 'spring' }}
+          className="absolute w-full text-center"
         >
           <h1 className="text-5xl sm:text-7xl font-black italic tracking-tighter text-white mb-4 drop-shadow-2xl">
             Crypto<span className="text-[#00AE64]">Bit</span>
@@ -108,9 +86,9 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
           {showLogin && !user && (
             <motion.div 
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: -40, scale: 1 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, type: 'spring' }}
-              className="absolute bottom-10 sm:bottom-20 w-full max-w-md bg-[#111827]/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-800 shadow-2xl"
+              className="absolute bottom-10 sm:bottom-16 w-full max-w-md bg-[#111827]/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-800 shadow-2xl pointer-events-auto"
             >
               <h2 className="text-2xl font-bold text-white mb-2 text-center">Secure Access</h2>
               <p className="text-sm text-gray-400 text-center mb-8">Authenticate to enter the trading terminal</p>

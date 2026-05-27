@@ -39,7 +39,8 @@ export default function IPOCenter() {
     }
   };
 
-  if (coins.length === 0) {
+  const validCoins = coins.filter(c => c.creatorId !== 'demo' && !c.name.toLowerCase().includes('bot') && !c.name.toLowerCase().includes('ai'));
+  if (validCoins.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-20 bg-white border border-gray-200 rounded-sm shadow-sm mt-4">
         <Activity className="w-12 h-12 text-[#00AE64] mb-4 animate-pulse" />
@@ -61,7 +62,7 @@ export default function IPOCenter() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {coins.map((coin) => (
+        {validCoins.map((coin) => (
           <div key={coin.id} className="bg-white border border-gray-200 rounded-sm overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-all group relative">
             {coin.isHot && (
               <div className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold px-3 py-1 rounded-bl-sm flex items-center gap-1 z-10 animate-pulse">
