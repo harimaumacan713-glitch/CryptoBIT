@@ -34,6 +34,8 @@ export default function WhaleTracker() {
     const q = query(collection(db, 'liveTransactions'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LiveTransaction));
+
+      txs = txs.filter(tx => tx.coin && !['BXC', 'QTX', 'ME'].includes(tx.coin.toUpperCase()));
       txs = txs.filter(tx => tx.type === 'BUY' || tx.type === 'SELL');
       txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setLiveTransactions(txs.slice(0, 100));

@@ -6,6 +6,7 @@
 import { ChevronDown, Plus, Save, Maximize2, MoreVertical } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
+import { useFirebase } from './FirebaseProvider';
 import { OrderBookData } from '../types';
 
 const initialOrderBooks: OrderBookData[] = [
@@ -63,6 +64,7 @@ const initialOrderBooks: OrderBookData[] = [
 ];
 
 export default function Orderbook() {
+  const { coins } = useFirebase();
   const initialCryptoData = useMemo(() => initialOrderBooks.map(ob => ({
     symbol: ob.symbol,
     name: ob.symbol,
@@ -72,23 +74,68 @@ export default function Orderbook() {
     sparkline: []
   })), []);
 
-  const livePrices = useRealTimeCrypto(initialCryptoData);
+  const livePrices = useRealTimeCrypto(initialCryptoData, coins);
 
   const orderbooks = useMemo(() => {
-    return initialOrderBooks.map(ob => {
+    // Generate listed items dynamically, starting with initial ones
+    const obs = [...initialOrderBooks];
+
+    // Merge any custom user coins that have been listed
+    coins.forEach(c => {
+      if (c.status === 'Listed') {
+        const symbol = c.symbol;
+        if (!obs.some(o => o.symbol === symbol)) {
+          const price = Number(c.currentPrice || c.initialPrice) || 0.1;
+          const change = price - Number(c.initialPrice);
+          const changePercent = Number(c.initialPrice) > 0 ? (change / Number(c.initialPrice)) * 100 : 0;
+          obs.push({
+            symbol: c.symbol,
+            price: price,
+            change: change,
+            changePercent: changePercent,
+            logo: c.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${c.symbol}`,
+            stats: {
+              open: Number(c.initialPrice).toLocaleString(undefined, { maximumFractionDigits: 3 }),
+              high: (price * 1.05).toLocaleString(undefined, { maximumFractionDigits: 3 }),
+              low: Math.max(0.00000001, price * 0.95).toLocaleString(undefined, { maximumFractionDigits: 3 }),
+              prev: Number(c.initialPrice).toLocaleString(undefined, { maximumFractionDigits: 3 }),
+              lot: (Number(c.volume24h || 0) / (price || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 }),
+              val: Number(c.volume24h || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
+            },
+            bids: [],
+            offers: []
+          });
+        }
+      }
+    });
+
+    return obs.map(ob => {
+      // Find customCoin attributes for trading pressure logic
+      const customCoin = coins.find(c => c.symbol === ob.symbol);
+      const buyVol = customCoin ? (Number(customCoin.buyVolume) || 0) : 0;
+      const sellVol = customCoin ? (Number(customCoin.sellVolume) || 0) : 0;
+      
+      let buyWeight = 1.0;
+      let sellWeight = 1.0;
+      if (buyVol > 0 || sellVol > 0) {
+        const totalVol = buyVol + sellVol;
+        buyWeight = (buyVol / totalVol) * 2;
+        sellWeight = (sellVol / totalVol) * 2;
+      }
+
       const live = livePrices.find(p => p.symbol === ob.symbol) || ob;
       const price = live.price;
       
-      // Generate synthetic bids/offers based on current price
+      // Generate synthetic bids/offers incorporating the buy/sell real volumes
       const bids = Array.from({ length: 7 }, (_, i) => ({
-        freq: (Math.floor(Math.random() * 5000)).toLocaleString(),
-        lot: (Math.floor(Math.random() * 100000)).toLocaleString(),
+        freq: (Math.floor(Math.random() * 500 * buyWeight) + 50).toLocaleString(),
+        lot: (Math.floor(Math.random() * 10000 * buyWeight) + 100).toLocaleString(),
         price: price - (i * (price * 0.0005))
       }));
       
       const offers = Array.from({ length: 7 }, (_, i) => ({
-        freq: (Math.floor(Math.random() * 5000)).toLocaleString(),
-        lot: (Math.floor(Math.random() * 100000)).toLocaleString(),
+        freq: (Math.floor(Math.random() * 500 * sellWeight) + 50).toLocaleString(),
+        lot: (Math.floor(Math.random() * 10000 * sellWeight) + 100).toLocaleString(),
         price: price + ((i + 1) * (price * 0.0005))
       }));
 
@@ -101,7 +148,7 @@ export default function Orderbook() {
         offers
       };
     });
-  }, [livePrices]);
+  }, [livePrices, coins]);
 
   return (
     <div className="mt-4 space-y-4">

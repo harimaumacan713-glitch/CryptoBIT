@@ -47,22 +47,29 @@ export default function App() {
           
           {activeTab === 'Stream' ? (
             <>
-              <div className="bg-gradient-to-r from-[#00AE64] to-emerald-900 rounded-sm p-6 mb-4 text-white relative overflow-hidden group">
+              <div className="bg-gradient-to-r from-emerald-950 via-[#0A1810] to-[#0D1E15] rounded-sm p-6 mb-4 text-white relative overflow-hidden group border border-[#00AE64]/20 shadow-xl shadow-emerald-950/20">
+                {/* Background Image overlay */}
+                <img 
+                  src="/src/assets/images/web3_banner_1779983854222.png" 
+                  alt="Upcoming Web3 projects background" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-screen pointer-events-none select-none transition-transform duration-1000 group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+                
+                {/* Visual glassmorphism glow effect */}
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[#00AE64]/10 rounded-full blur-3xl pointer-events-none select-none -mr-20 -mt-20"></div>
+
                 <div className="relative z-10">
-                  <span className="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest mb-2 inline-block">Featured Launch</span>
+                  <span className="bg-[#00AE64]/20 border border-[#00AE64]/30 backdrop-blur-md px-2.5 py-1 rounded text-[10px] font-extrabold uppercase tracking-widest mb-3 inline-block text-[#00AE64]">Featured Launch</span>
                   <h2 className="text-2xl font-black italic tracking-tighter leading-none mb-2">UPCOMING WEB3 PROJECTS</h2>
-                  <p className="text-xs text-white/80 max-w-sm">Discover and invest in the next generation of blockchain innovation before they hit the open market.</p>
+                  <p className="text-xs text-gray-300 max-w-sm font-medium leading-relaxed">Discover and invest in the next generation of blockchain innovation before they hit the open market.</p>
                 </div>
-                <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-                   <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                     <path fill="#FFFFFF" d="M47.7,-63.1C59.9,-54.4,66.5,-37.4,69.5,-20.5C72.5,-3.6,71.9,13.2,65.6,28.6C59.3,44,47.3,58,32.3,65.8C17.3,73.5,-0.7,75,-16.9,69.6C-33.1,64.2,-47.5,51.8,-57.3,37.3C-67.1,22.8,-72.3,6.2,-70.6,-9.7C-68.9,-25.6,-60.2,-40.8,-48.1,-49.6C-36,-58.4,-20.5,-60.8,-2.6,-57.1C15.3,-53.4,35.5,-71.8,47.7,-63.1Z" transform="translate(100 100)" />
-                   </svg>
-                </div>
+                
                 <button 
-                  onClick={() => setActiveTab('Crypto IPO')}
-                  className="mt-4 bg-white text-[#00AE64] font-bold text-xs px-4 py-2 rounded-sm hover:bg-white/90 transition-colors shadow-lg"
+                  onClick={() => setActiveTab('Create Coin')}
+                  className="relative z-10 mt-4 bg-[#00AE64] hover:bg-[#009656] text-white font-bold text-xs px-5 py-2.5 rounded-sm transition-all shadow-lg shadow-emerald-950/40 hover:-translate-y-0.5 active:translate-y-0 duration-200 cursor-pointer"
                 >
-                  Browse Projects
+                  Create Your Token
                 </button>
               </div>
               <PromoBanner />

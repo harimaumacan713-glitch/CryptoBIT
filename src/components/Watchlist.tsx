@@ -9,14 +9,14 @@ import { doc, setDoc, getDoc, collection, updateDoc, increment } from 'firebase/
 import { WATCHLIST_COINS } from '../utils/constants';
 
 export default function Watchlist() {
-  const cryptos = useRealTimeCrypto(WATCHLIST_COINS);
+  const { user, db, userProfile, tradeCrypto, coins } = useFirebase();
+  const cryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
   const [search, setSearch] = useState('');
   const [selectedCoin, setSelectedCoin] = useState<CryptoData | null>(null);
   const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [tradeSuccess, setTradeSuccess] = useState(false);
-  const { user, db, userProfile, tradeCrypto } = useFirebase();
 
   const filteredCryptos = cryptos.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -84,7 +84,7 @@ export default function Watchlist() {
           <tbody>
             {filteredCryptos.map((coin, index) => (
               <motion.tr 
-                key={coin.symbol}
+                key={coin.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
@@ -220,8 +220,23 @@ export default function Watchlist() {
                             className="w-full bg-gray-50 border border-gray-200 rounded p-3 text-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-shadow"
                           />
                           <button 
-                            onClick={() => setAmount('10')} 
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#00AE64] bg-[#00AE64]/10 px-2 py-1 rounded"
+                            type="button"
+                            onClick={() => {
+                              if (userProfile && selectedCoin) {
+                                if (tradeAction === 'buy') {
+                                  const maxBuyAmount = userProfile.balance / selectedCoin.price;
+                                  if (maxBuyAmount > 0) {
+                                    setAmount(Number(maxBuyAmount.toFixed(8)).toString());
+                                  } else {
+                                    setAmount('0');
+                                  }
+                                } else {
+                                  const holdingAmount = userProfile.assets?.[selectedCoin.symbol] || 0;
+                                  setAmount(holdingAmount.toString());
+                                }
+                              }
+                            }} 
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#00AE64] bg-[#00AE64]/10 px-2.5 py-1 rounded cursor-pointer hover:bg-[#00AE64]/20 transition-all"
                           >
                             MAX
                           </button>

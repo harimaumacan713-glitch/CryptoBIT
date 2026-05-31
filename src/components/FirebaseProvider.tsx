@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, User, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc, getDocs, where } from 'firebase/firestore';
 import { IPOCoin, IPOOrder, UserProfile } from '../types';
 
 const firebaseConfig = {
@@ -50,6 +50,7 @@ interface FirebaseContextType {
   transferBalance: (recipientEmail: string, amount: number) => Promise<void>;
   transferAsset: (recipientEmail: string, assetSymbol: string, amount: number) => Promise<void>;
   tradeCrypto: (action: 'buy' | 'sell', symbol: string, amount: number, price: number) => Promise<void>;
+  clearAllUserCoins: () => Promise<void>;
 }
 
 const app = initializeApp(firebaseConfig);
@@ -62,6 +63,7 @@ const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [dbCoins, setDbCoins] = useState<IPOCoin[]>([]);
   const [coins, setCoins] = useState<IPOCoin[]>([]);
   const [orders, setOrders] = useState<IPOOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,17 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const userRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
-        setUserProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
+        const data = docSnap.data();
+        const assets = { ...(data.assets || {}) };
+        const assetsInvested = { ...(data.assetsInvested || {}) };
+
+        // Silently omit banned coins from client states
+        ['BXC', 'QTX', 'ME'].forEach(symbol => {
+          delete assets[symbol];
+          delete assetsInvested[symbol];
+        });
+
+        setUserProfile({ id: docSnap.id, ...data, assets, assetsInvested } as UserProfile);
       } else {
         // Create initial profile
         setDoc(userRef, {
@@ -105,24 +117,86 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const q = query(collection(db, 'coins'));
     return onSnapshot(q, (snapshot) => {
-      const coinList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IPOCoin));
+      const coinList = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as IPOCoin))
+        .filter(coin => coin.symbol && !['BXC', 'QTX', 'ME'].includes(coin.symbol.toUpperCase()));
+
+      setDbCoins(coinList);
       setCoins(coinList);
     });
   }, []);
 
-  // Seed demo data if empty
+
+
+  // Automated Listing or Failure check (Real-time AMM Pool setup and Automated full refunding for failures)
   useEffect(() => {
-    if (coins.length === 0 && !loading) {
-      const demoCoins = [
-        { name: 'Tesla Motors Token', symbol: 'TSLAX', totalSupply: 100000000, initialPrice: 2.50, listingDate: new Date(Date.now() + 86400000 * 3).toISOString(), status: 'Live', isHot: true, description: 'Tokenized equity representing fractional ownership in Tesla innovations.', website: 'tesla.com', targetFund: 25000000, soldCount: 12500000, investorCount: 4500, creatorId: 'company', isVerified: true, logo: 'https://logo.clearbit.com/tesla.com' },
-        { name: 'Apple Vision', symbol: 'AAPL-V', totalSupply: 500000000, initialPrice: 1.05, listingDate: new Date(Date.now() + 86400000 * 7).toISOString(), status: 'Upcoming', isHot: false, description: 'Tokenized ecosystem for the next generation of Apple augmented reality devices.', website: 'apple.com', targetFund: 10000000, soldCount: 0, investorCount: 0, creatorId: 'company', isVerified: true, logo: 'https://logo.clearbit.com/apple.com' },
-        { name: 'SpaceX Galactic', symbol: 'SPCX', totalSupply: 25000000, initialPrice: 10.25, listingDate: new Date(Date.now() + 3600000 * 5).toISOString(), status: 'Live', isHot: true, description: 'Funding the next mission to Mars through decentralized aerospace collaboration.', website: 'spacex.com', targetFund: 50000000, soldCount: 48500000, investorCount: 22000, creatorId: 'company', isVerified: true, logo: 'https://logo.clearbit.com/spacex.com' },
-        { name: 'EcoChain Global', symbol: 'GRN', totalSupply: 10000000, initialPrice: 0.1, listingDate: new Date(Date.now() + 86400000 * 12).toISOString(), status: 'Upcoming', isHot: false, description: 'Rewarding carbon-neutral actions through verified environmental credits.', website: 'green.earth', targetFund: 250000, soldCount: 0, investorCount: 0, creatorId: 'company', isVerified: false, logo: 'https://unavatar.io/green.earth' },
-        { name: 'Nvidia Compute', symbol: 'NVDA-C', totalSupply: 75000000, initialPrice: 5.5, listingDate: new Date(Date.now() + 86400000 * 2).toISOString(), status: 'Live', isHot: false, description: 'Decentralized access to high-performance GPU computing networks.', website: 'nvidia.com', targetFund: 15000000, soldCount: 3000000, investorCount: 1200, creatorId: 'company', isVerified: true, logo: 'https://logo.clearbit.com/nvidia.com' }
-      ];
-      demoCoins.forEach(c => addDoc(collection(db, 'coins'), c));
-    }
-  }, [coins, loading]);
+    if (dbCoins.length === 0) return;
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      dbCoins.forEach(async (coin) => {
+         let targetStr = coin.listingDate || coin.ipoEndTime || coin.listingTime;
+         let listingTime = targetStr ? new Date(targetStr).getTime() : NaN;
+         if (isNaN(listingTime) && coin.countdownDuration && coin.ipoStartTime) {
+            listingTime = new Date(coin.ipoStartTime).getTime() + coin.countdownDuration;
+         }
+         
+         if (!isNaN(listingTime) && coin.status !== 'Listed' && coin.status !== 'Failed' && now >= listingTime) {
+             const coinRef = doc(db, 'coins', coin.id);
+             
+             // 20% allocated for IPO, hardcap is total value of this allocation
+             const hardcap = coin.hardcap || (coin.totalSupply * 0.2 * coin.initialPrice);
+             const fundRaised = (coin.soldCount || 0) * coin.initialPrice;
+
+             if (fundRaised >= hardcap) {
+                 // Success IPO -> Transition to LISTED & build pool
+                 const initialUsdPool = (coin.liquidity || 1000000) + fundRaised;
+                 const initialTokenPool = initialUsdPool / coin.initialPrice;
+
+                 await updateDoc(coinRef, {
+                    status: 'Listed',
+                    usdPool: initialUsdPool,
+                    tokenPool: initialTokenPool,
+                    liquidity: initialUsdPool,
+                    currentPrice: coin.initialPrice,
+                    sparkline: [{ value: coin.initialPrice }]
+                 }).catch(console.error);
+             } else {
+                 // Failed IPO -> Mark status FAILED & execute automated full refund
+                 await updateDoc(coinRef, { status: 'Failed' }).catch(console.error);
+
+                 try {
+                     const ordersSnap = await getDocs(query(collection(db, 'orders'), where('coinId', '==', coin.id)));
+                     for (const orderDoc of ordersSnap.docs) {
+                         const orderData = orderDoc.data();
+                         if (orderData.status !== 'Refunded') {
+                             const refundAmount = (orderData.amount || 0) * (orderData.price || 0);
+                             await updateDoc(doc(db, 'orders', orderDoc.id), { status: 'Refunded' });
+
+                             // Add balance back to user
+                             const investorRef = doc(db, 'users', orderData.userId);
+                             const investorSnap = await getDoc(investorRef);
+                             if (investorSnap.exists()) {
+                                 const currentBal = investorSnap.data().balance || 0;
+                                 const currentAssets = investorSnap.data().assets || {};
+                                 const currentAssetAmount = currentAssets[coin.symbol] || 0;
+                                 const newAssetAmount = Math.max(0, currentAssetAmount - orderData.amount);
+
+                                 await updateDoc(investorRef, {
+                                     balance: currentBal + refundAmount,
+                                     [`assets.${coin.symbol}`]: newAssetAmount
+                                 });
+                             }
+                         }
+                     }
+                 } catch (err) {
+                     console.error("Failed to perform automated refund for failed IPO coin:", err);
+                 }
+             }
+         }
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [dbCoins]);
 
   // Listen for user orders
   useEffect(() => {
@@ -134,7 +208,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     return onSnapshot(q, (snapshot) => {
       const orderList = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as IPOOrder))
-        .filter(order => order.userId === user.uid);
+        .filter(order => order.userId === user.uid)
+        .filter(order => order.coinSymbol && !['BXC', 'QTX', 'ME'].includes(order.coinSymbol.toUpperCase()));
+
       setOrders(orderList);
     });
   }, [user]);
@@ -170,21 +246,54 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   const createCoin = async (coinData: Partial<IPOCoin>) => {
     if (!user) throw new Error('Must be logged in');
+    if (!userProfile) throw new Error('User profile not loaded');
+    if (!userProfile.isVerified) throw new Error('Akun Anda harus terverifikasi KYC terlebih dahulu!');
+    
+    const reqLiquidity = Number(coinData.liquidity) || 1000000;
+    if (userProfile.balance < reqLiquidity) {
+      throw new Error(`Saldo tidak mencukupi! Saldo Anda saat ini $${userProfile.balance.toLocaleString()}. Anda memerlukan deposit likuiditas virtual minimum $1,000,000 USD untuk meluncurkan proyek.`);
+    }
+
+    const nowISO = new Date().toISOString();
+    let endISO = coinData.listingDate;
+    if (!endISO || isNaN(new Date(endISO).getTime())) {
+      // Default to 2 hours from now
+      endISO = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    } else {
+      endISO = new Date(endISO).toISOString();
+    }
+    
+    const startTimeStamp = new Date(nowISO).getTime();
+    const endTimeStamp = new Date(endISO).getTime();
+    const duration = Math.max(0, endTimeStamp - startTimeStamp);
+
+    // Deduct $1,000,000 USD virtual liquidity
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      balance: userProfile.balance - reqLiquidity
+    });
+
+    const isHotValue = coinData.totalSupply > 50000000;
+
     const docRef = await addDoc(collection(db, 'coins'), {
       ...coinData,
+      listingDate: endISO,
+      listingTime: endISO,
+      ipoStartTime: nowISO,
+      ipoEndTime: endISO,
+      countdownDuration: duration,
       creatorId: user.uid,
       soldCount: 0,
       investorCount: 0,
-      isVerified: false,
+      isVerified: true,
+      isHot: isHotValue,
+      creatorWallet: userProfile.walletAddress || '0xUNKNOWN',
+      usdPool: reqLiquidity, // initial pool USD equals user liquidity deposit
+      tokenPool: reqLiquidity / (coinData.initialPrice || 0.1),
       timestamp: serverTimestamp()
     });
-    // Create companion user profile if doesnt exist
-    await setDoc(doc(db, 'users', user.uid), {
-      username: user.displayName || 'User',
-      avatar: user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`,
-      isVerified: false,
-      walletAddress: generateWalletAddress()
-    }, { merge: true });
+
+    await logLiveTransaction('DEPOSIT', coinData.symbol || 'UNK', reqLiquidity, 1, reqLiquidity, userProfile.walletAddress || '0xUNKNOWN');
   };
 
   const logLiveTransaction = async (type: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER', coin: string, amount: number, price: number | undefined, usdValue: number, wallet: string) => {
@@ -257,14 +366,21 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     
     await logLiveTransaction('BUY', order.coinSymbol || 'UNK', order.amount || 0, order.price || 0, cost, userProfile.walletAddress || '0xUNKNOWN');
 
-    // Update coin investor/sold count (Simulated real-time increment)
+    // Update coin investor/sold count (REAL transactions) and check hardcap
     if (order.coinId) {
        const coinRef = doc(db, 'coins', order.coinId);
        const coin = coins.find(c => c.id === order.coinId);
        if (coin) {
+         const newSoldCount = (coin.soldCount || 0) + (order.amount || 0);
+         const hardcap = coin.totalSupply * 0.2; // 20% allocated for IPO
+         let newStatus = coin.status;
+         if (newSoldCount >= hardcap) {
+           newStatus = 'Listed';
+         }
          await updateDoc(coinRef, {
-           soldCount: (coin.soldCount || 0) + (order.amount || 0),
-           investorCount: (coin.investorCount || 0) + 1
+           soldCount: newSoldCount,
+           investorCount: (coin.investorCount || 0) + 1,
+           status: newStatus
          });
        }
     }
@@ -272,15 +388,87 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   const tradeCrypto = async (action: 'buy' | 'sell', symbol: string, amount: number, price: number) => {
     if (!user || !userProfile) throw new Error('Must be logged in');
+
+    let finalPrice = price;
+    const customCoin = coins.find(c => c.symbol === symbol);
+
+    let newLiquidity = 0;
+    let newBuyVolume = 0;
+    let newSellVolume = 0;
+    let newInvestorCount = customCoin ? (customCoin.investorCount || 0) : 0;
+    let usdPoolNew = 0;
+    let tokenPoolNew = 0;
+
+    if (customCoin && customCoin.status === 'Listed') {
+       // Fetch latest coin state directly from Firestore for precise pool math
+       const coinRef = doc(db, 'coins', customCoin.id);
+       const coinSnap = await getDoc(coinRef);
+       if (!coinSnap.exists()) throw new Error("Proyek koin tidak ditemukan");
+       const coinData = coinSnap.data() as IPOCoin;
+
+       const initialPriceValue = Number(coinData.initialPrice) || 0.1;
+       let usdPool = Number(coinData.usdPool);
+       let tokenPool = Number(coinData.tokenPool);
+       
+       if (!usdPool || !tokenPool) {
+          // Fallback if pools aren't initialized yet
+          usdPool = Number(coinData.liquidity) || 1000000;
+          tokenPool = usdPool / initialPriceValue;
+       }
+
+       const k = usdPool * tokenPool;
+
+       if (action === 'buy') {
+          tokenPoolNew = tokenPool - amount;
+          
+          // Slippage & Depth protections
+          if (tokenPoolNew <= tokenPool * 0.05) {
+             throw new Error("🚨 GELOMBANG VOLATILITAS: Pembelian Anda terlalu besar! Likuiditas tidak mencukupi untuk memproses ukuran transaksi ini.");
+          }
+
+          usdPoolNew = k / tokenPoolNew;
+          const totalCostUSD = usdPoolNew - usdPool;
+          
+          finalPrice = totalCostUSD / amount; // Average executed price under slippage
+          newLiquidity = usdPoolNew;
+          newBuyVolume = (Number(coinData.buyVolume) || 0) + totalCostUSD;
+          newSellVolume = Number(coinData.sellVolume) || 0;
+
+          const currentAssetAmount = userProfile.assets?.[symbol] || 0;
+          if (currentAssetAmount === 0) {
+            newInvestorCount = newInvestorCount + 1;
+          }
+       } else {
+          // Crash protection: prevent the coin creator from dumping > 5% of total supply at once
+          if (user.uid === coinData.creatorId && amount > (coinData.totalSupply * 0.05)) {
+             throw new Error("🚨 CRASH PROTECTION ACTIVATED: Koki koin tidak diizinkan untuk menjual lebih dari 5% total supply dalam satu transaksi untuk melindungi investor ritel.");
+          }
+
+          tokenPoolNew = tokenPool + amount;
+          usdPoolNew = k / tokenPoolNew;
+          const totalReceivedUSD = usdPool - usdPoolNew;
+
+          finalPrice = totalReceivedUSD / amount; // Average executed price under slippage
+          newLiquidity = usdPoolNew;
+          newSellVolume = (Number(coinData.sellVolume) || 0) + totalReceivedUSD;
+          newBuyVolume = Number(coinData.buyVolume) || 0;
+
+          const currentAssetAmount = userProfile.assets?.[symbol] || 0;
+          if (amount >= currentAssetAmount) {
+             newInvestorCount = Math.max(0, newInvestorCount - 1);
+          }
+       }
+    }
     
-    const totalCost = amount * price;
+    // Calculate total trade size in virtual USD
+    const totalCost = amount * finalPrice;
     const userRef = doc(db, 'users', user.uid);
     const currentAssetAmount = userProfile.assets?.[symbol] || 0;
     const currentInvested = userProfile.assetsInvested?.[symbol] || 0;
 
     if (action === 'buy') {
       if (userProfile.balance < totalCost) {
-        throw new Error(`Insufficient balance. Requires $${totalCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+        throw new Error(`Saldo tidak mencukupi! Transaksi membutuhkan $${totalCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD.`);
       }
       await updateDoc(userRef, {
         balance: userProfile.balance - totalCost,
@@ -289,10 +477,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       });
     } else {
       if (currentAssetAmount < amount) {
-        throw new Error(`Insufficient ${symbol} assets. You have ${currentAssetAmount}.`);
+        throw new Error(`Aset Anda tidak mencukupi! Anda memiliki ${currentAssetAmount} ${symbol}.`);
       }
       
-      // Compute the portion of the invested amount that is being sold
       const proportionSold = amount / currentAssetAmount;
       const soldInvestedAmount = currentInvested * proportionSold;
       
@@ -303,24 +490,74 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // Record trade history
+    const sanitizedPrice = isNaN(finalPrice) || finalPrice <= 0 ? 0.001 : finalPrice;
+    const sanitizedTotal = isNaN(totalCost) || totalCost < 0 ? 0 : totalCost;
+
+    // Log the actual completed trade
     await addDoc(collection(db, 'trades'), {
       userId: user.uid,
       symbol,
-      type: action,
-      amount,
-      price,
-      total: totalCost,
+      type: action.toUpperCase(),
+      amount: Number(amount) || 0,
+      price: sanitizedPrice,
+      total: sanitizedTotal,
       timestamp: new Date().toISOString()
     });
 
-    await logLiveTransaction(action.toUpperCase() as any, symbol, amount, price, totalCost, userProfile.walletAddress || '0xUNKNOWN');
+    await logLiveTransaction(action.toUpperCase() as any, symbol, amount, sanitizedPrice, sanitizedTotal, userProfile.walletAddress || '0xUNKNOWN');
+
+    if (customCoin && customCoin.status === 'Listed') {
+       const coinRef = doc(db, 'coins', customCoin.id);
+       const sparkline = customCoin.sparkline || [{ value: Number(customCoin.initialPrice) || 0.1 }];
+       const nextMarginalPrice = usdPoolNew / tokenPoolNew;
+       const newSparkline = [...sparkline, { value: nextMarginalPrice }];
+       if (newSparkline.length > 30) newSparkline.shift();
+
+       const sanitizedLiquidity = isNaN(newLiquidity) || newLiquidity < 0 ? 10 : newLiquidity;
+       const sanitizedBuyVolume = isNaN(newBuyVolume) ? 0 : newBuyVolume;
+       const sanitizedSellVolume = isNaN(newSellVolume) ? 0 : newSellVolume;
+       const sanitizedInvestorCount = isNaN(newInvestorCount) ? 1 : newInvestorCount;
+       const sanitizedMarketCap = (Number(customCoin.totalSupply) * nextMarginalPrice);
+       const sanitizedVolume24h = isNaN(Number(customCoin.volume24h) || 0) ? sanitizedTotal : (Number(customCoin.volume24h) || 0) + sanitizedTotal;
+
+       await updateDoc(coinRef, {
+         currentPrice: nextMarginalPrice,
+         usdPool: usdPoolNew,
+         tokenPool: tokenPoolNew,
+         sparkline: newSparkline,
+         volume24h: sanitizedVolume24h,
+         liquidity: sanitizedLiquidity,
+         buyVolume: sanitizedBuyVolume,
+         sellVolume: sanitizedSellVolume,
+         investorCount: sanitizedInvestorCount,
+         marketCap: sanitizedMarketCap
+       });
+    }
+  };
+
+  const clearAllUserCoins = async () => {
+    try {
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      const userCoins = dbCoins.filter(c => 
+        c.creatorId && 
+        c.creatorId !== 'company' && 
+        c.creatorId !== 'demo'
+      );
+      for (const coin of userCoins) {
+        if (coin.id) {
+          await deleteDoc(doc(db, 'coins', coin.id));
+        }
+      }
+    } catch (e) {
+      console.error("Failed manual clear of user coins", e);
+      throw e;
+    }
   };
 
   return (
     <FirebaseContext.Provider value={{
       user, userProfile, coins, orders, loading, db, login, logout,
-      createCoin, placeOrder, updateBalance, transferBalance, transferAsset, tradeCrypto
+      createCoin, placeOrder, updateBalance, transferBalance, transferAsset, tradeCrypto, clearAllUserCoins
     }}>
       {children}
     </FirebaseContext.Provider>

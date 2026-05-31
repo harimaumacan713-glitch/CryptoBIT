@@ -1,13 +1,22 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
 import { FirebaseProvider } from './components/FirebaseProvider';
 import './index.css';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <FirebaseProvider>
-      <App />
-    </FirebaseProvider>
-  </StrictMode>,
-);
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(
+    <React.StrictMode>
+      <FirebaseProvider>
+        <App />
+      </FirebaseProvider>
+    </React.StrictMode>
+  );
+}

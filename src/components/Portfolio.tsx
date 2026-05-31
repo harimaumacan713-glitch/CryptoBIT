@@ -4,29 +4,45 @@
  */
 
 import { MoreVertical, X, Clock, CheckCircle2, AlertCircle, Share2, Download, MessageCircle, Twitter } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as htmlToImage from 'html-to-image';
 import { useFirebase } from './FirebaseProvider';
+import { collection, query, onSnapshot, where } from 'firebase/firestore';
 
 const MOCK_PRICES: Record<string, number> = {
   'USD': 1,
   'BTC': 96345.75,
   'ETH': 2760.00,
-  'USDT': 1.00,
-  'AIX': 0.25,
-  'META': 0.05,
-  'NOVA': 1.25,
-  'GRN': 0.1,
-  'DFC': 0.5
+  'USDT': 1.00
 };
 
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { WATCHLIST_COINS } from '../utils/constants';
 
 export default function Portfolio() {
-  const { orders, user, userProfile, tradeCrypto } = useFirebase();
-  const cryptos = useRealTimeCrypto(WATCHLIST_COINS);
+  const { orders, user, userProfile, tradeCrypto, coins, db } = useFirebase();
+  const cryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
   const [activeTab, setActiveTab] = useState('Holdings');
+  const [trades, setTrades] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    const q = query(
+      collection(db, 'trades'),
+      where('userId', '==', user.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((trade: any) => trade.symbol && !['BXC', 'QTX', 'ME'].includes(trade.symbol.toUpperCase()));
+
+      list.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      setTrades(list);
+    }, (err) => {
+      console.error("Trades subscription failed", err);
+    });
+    return unsubscribe;
+  }, [user, db]);
   
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
   const [showCloseModal, setShowCloseModal] = useState(false);
@@ -71,7 +87,7 @@ export default function Portfolio() {
       <div className="flex flex-col items-center justify-center p-20 bg-white border border-gray-200 rounded-sm shadow-sm mt-4">
         <Clock className="w-12 h-12 text-[#00AE64] mb-4 animate-pulse" />
         <h2 className="text-xl font-bold">Please Login</h2>
-        <p className="text-gray-500 text-sm mt-2">Log in to view your portfolio and IPO orders.</p>
+        <p className="text-gray-500 text-sm mt-2">Log in to view your portfolio and transaction history.</p>
       </div>
     );
   }
@@ -158,10 +174,10 @@ export default function Portfolio() {
               <tbody className="divide-y divide-gray-50">
                 {Object.keys(userProfile.assets || {}).length === 0 ? (
                    <tr>
-                     <td colSpan={7} className="py-20 text-center text-gray-400 text-sm italic">You don't hold any assets yet. Buy some in Crypto IPO.</td>
+                     <td colSpan={7} className="py-20 text-center text-gray-400 text-sm italic">You don't hold any assets yet. Buy some in Watchlist or trade in the live stream.</td>
                    </tr>
                 ) : (
-                  (Object.entries(userProfile.assets || {}) as [string, number][]).filter(([_, amt]) => amt > 0).map(([symbol, balance]) => {
+                   (Object.entries(userProfile.assets || {}) as [string, number][]).filter(([_, amt]) => amt > 0).map(([symbol, balance]) => {
                     const cryptoInfo = cryptos.find(c => c.symbol === symbol);
                     const price = cryptoInfo ? cryptoInfo.price : (MOCK_PRICES[symbol] || 0.1);
                     const invested = userProfile.assetsInvested?.[symbol] || (balance * (price * 0.9)); 
@@ -194,7 +210,7 @@ export default function Portfolio() {
                                className="text-gray-400 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition-colors"
                              >
                                <MoreVertical className="w-5 h-5" />
-                             </button>
+                              </button>
                              {activeActionMenu === symbol && (
                                <>
                                  <div className="fixed inset-0 z-10" onClick={() => setActiveActionMenu(null)}></div>
@@ -261,8 +277,8 @@ export default function Portfolio() {
                            <span className="font-black text-sm text-gray-900">{order.coinSymbol}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">{order.amount.toLocaleString()}</td>
-                      <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${order.price.toFixed(3)}</td>
+                      <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">{(Number(order.amount) || 0).toLocaleString()}</td>
+                      <td className="px-4 py-4 text-sm font-bold text-gray-700 text-right tabular-nums">${(Number(order.price) || 0).toFixed(3)}</td>
                       <td className="px-4 py-4 text-sm font-bold text-gray-500 text-right tabular-nums">{new Date(order.listingDate).toLocaleDateString()}</td>
                       <td className="px-4 py-4">
                          <div className="flex items-center justify-center">
@@ -284,10 +300,59 @@ export default function Portfolio() {
         )}
 
         {activeTab === 'History' && (
-           <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
-              <AlertCircle className="w-12 h-12 text-gray-200 mb-4" />
-              <p className="text-gray-400 text-sm italic">No recent transactions found.</p>
-           </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50 border-b border-gray-100 italic">
+                  <th className="px-4 py-3 text-[11px] font-black text-[#00AE64] uppercase">Token</th>
+                  <th className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase text-center">Type</th>
+                  <th className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase text-right">Amount</th>
+                  <th className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase text-right">Price</th>
+                  <th className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase text-right">Total</th>
+                  <th className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase text-right">Date & Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {trades.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-20 text-center text-gray-400 text-sm italic">You haven't made any listed token trades yet.</td>
+                  </tr>
+                ) : (
+                  trades.map((trade) => {
+                    const isBuy = String(trade.type).toUpperCase() === 'BUY';
+                    return (
+                      <tr key={trade.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-sm text-gray-900">{trade.symbol}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                            isBuy ? 'bg-[#00AE64]/10 text-[#00AE64]' : 'bg-red-50 text-red-500'
+                          }`}>
+                            {trade.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-semibold text-gray-700 text-right tabular-nums">
+                          {(Number(trade.amount) || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-semibold text-gray-700 text-right tabular-nums">
+                          ${(Number(trade.price) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                        </td>
+                        <td className="px-4 py-4 text-sm font-bold text-gray-900 text-right tabular-nums">
+                          ${(Number(trade.total) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-4 text-xs font-medium text-gray-400 text-right tabular-nums">
+                          {trade.timestamp ? new Date(trade.timestamp).toLocaleString() : 'N/A'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

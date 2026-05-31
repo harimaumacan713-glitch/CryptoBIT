@@ -6,6 +6,7 @@
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { CryptoData } from '../types';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
+import { useFirebase } from './FirebaseProvider';
 
 const initialCrypto: CryptoData[] = [
   {
@@ -70,20 +71,12 @@ const initialCrypto: CryptoData[] = [
     changePercent: -2.10,
     logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/ada.png',
     sparkline: Array.from({ length: 15 }, (_, i) => ({ value: 0.44 + Math.random() * 0.02 }))
-  },
-  {
-    symbol: 'TON',
-    name: 'Toncoin',
-    price: 7.20,
-    change: 0.45,
-    changePercent: 6.25,
-    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/ton.png',
-    sparkline: Array.from({ length: 15 }, (_, i) => ({ value: 6.5 + Math.random() * 1 }))
   }
 ];
 
 export default function TrendingStocks() {
-  const cryptos = useRealTimeCrypto(initialCrypto);
+  const { coins } = useFirebase();
+  const cryptos = useRealTimeCrypto(initialCrypto, coins);
 
   return (
     <div className="py-4">
@@ -93,7 +86,7 @@ export default function TrendingStocks() {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-0 border border-gray-200 rounded-sm bg-white overflow-hidden shadow-sm">
         {cryptos.map((crypto, index) => (
-          <div key={crypto.symbol} className={`p-4 ${index !== cryptos.length - 1 ? 'border-r border-gray-200' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}>
+          <div key={crypto.id} className={`p-4 ${index !== cryptos.length - 1 ? 'border-r border-gray-200' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}>
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 bg-gray-50 rounded-full overflow-hidden border border-gray-100 flex items-center justify-center shrink-0">

@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type IPOStatus = 'Upcoming' | 'Live' | 'Listed';
+export type IPOStatus = 'Upcoming' | 'Live' | 'Listed' | 'Failed';
 export type OrderStatus = 'Pending' | 'Success' | 'Refunded';
 
 export interface CryptoData {
+  id?: string;
   symbol: string;
   name: string;
   price: number;
@@ -37,6 +38,25 @@ export interface IPOCoin {
   creatorId: string;
   isVerified: boolean;
   isHot?: boolean;
+  currentPrice?: number;
+  volume24h?: number;
+  marketCap?: number;
+  sparkline?: { value: number }[];
+  ipoStartTime?: string;
+  ipoEndTime?: string;
+  listingTime?: string;
+  countdownDuration?: number;
+  
+  // Real-Time Exchange parameters
+  circulatingSupply?: number;
+  liquidity?: number;
+  hardcap?: number;
+  creatorWallet?: string;
+  lockSupplyCreator?: number;
+  usdPool?: number;
+  tokenPool?: number;
+  buyVolume?: number;
+  sellVolume?: number;
 }
 
 export interface IPOOrder {

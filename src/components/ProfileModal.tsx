@@ -138,7 +138,7 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
                     <div className="flex flex-col items-center mb-8">
                       <div className="relative group">
                         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-800 bg-gray-900 flex items-center justify-center">
-                          {photoURL ? (
+                          {photoURL && photoURL !== "" ? (
                             <img src={photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             <User className="w-10 h-10 text-gray-500" />

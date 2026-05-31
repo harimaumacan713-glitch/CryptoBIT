@@ -12,17 +12,12 @@ const MOCK_PRICES: Record<string, number> = {
   'USD': 1,
   'BTC': 96345.75,
   'ETH': 2760.00,
-  'USDT': 1.00,
-  'AIX': 0.25,
-  'META': 0.05,
-  'NOVA': 1.25,
-  'GRN': 0.1,
-  'DFC': 0.5
+  'USDT': 1.00
 };
 
 export default function ProfilePage() {
-  const { user, userProfile, updateBalance, transferBalance, transferAsset } = useFirebase();
-  const cryptos = useRealTimeCrypto(WATCHLIST_COINS);
+  const { user, userProfile, updateBalance, transferBalance, transferAsset, coins } = useFirebase();
+  const cryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
   const [activeTab, setActiveTab] = useState('Assets');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
@@ -200,7 +195,7 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 z-10 w-full">
           {/* Avatar */}
           <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-blue-100 flex-shrink-0 flex items-center justify-center">
-            {user.photoURL ? (
+            {user.photoURL && user.photoURL !== "" ? (
               <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
                <div className="w-full h-full bg-gradient-to-tr from-blue-300 to-blue-500 flex items-center justify-center text-white text-4xl font-bold">
@@ -386,7 +381,7 @@ export default function ProfilePage() {
                   }) : (
                     <tr>
                       <td colSpan={4} className="py-12 text-center text-gray-500 font-medium">
-                        You do not hold any assets yet. Head over to the Crypto IPO to buy some tokens!
+                        You do not hold any assets yet. Head over to the Watchlist to buy some tokens!
                       </td>
                     </tr>
                   )}

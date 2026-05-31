@@ -62,7 +62,7 @@ export default function Header({ setActiveTab }: HeaderProps) {
               className="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-gray-100 rounded-md ml-2 transition-colors"
             >
               <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
-                {user?.photoURL ? (
+                {user?.photoURL && user.photoURL !== "" ? (
                   <img src={user.photoURL} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   <User className="w-4 h-4 text-blue-500" />
