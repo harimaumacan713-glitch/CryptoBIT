@@ -110,13 +110,13 @@ export default function BrokerAnalysis() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#00AE64]/10 blur-[120px] rounded-full pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full pointer-events-none"></div>
 
-      <div className="flex items-center justify-between mb-8 relative z-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-10">
         <div>
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-3">
-             <Globe2 className="text-[#00AE64] animate-pulse w-8 h-8" />
+          <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase flex items-center gap-3">
+             <Globe2 className="text-[#00AE64] animate-pulse w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
              Global Broker Analytics
           </h1>
-          <p className="text-gray-400 text-sm mt-1 flex items-center gap-2">
+          <p className="text-gray-400 text-xs sm:text-sm mt-1 flex items-center gap-2">
              <span className="flex items-center gap-1 text-[#00AE64]">
                <span className="w-2 h-2 rounded-full bg-[#00AE64] animate-ping"></span>
                Live
@@ -124,12 +124,12 @@ export default function BrokerAnalysis() {
              Institutional & Market Data Stream (Low Latency)
           </p>
         </div>
-        <div className="flex gap-4">
-           <div className="bg-[#111827] border border-gray-800 px-4 py-2 rounded-lg flex flex-col items-end shadow-inner">
+        <div className="flex gap-4 w-full md:w-auto justify-between md:justify-end">
+           <div className="bg-[#111827] border border-gray-800 px-4 py-2 rounded-lg flex flex-col items-end shadow-inner flex-1 md:flex-none">
               <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Network Ping</span>
               <span className="text-[#00AE64] font-mono text-sm font-bold flex items-center gap-1">12ms <SignalHigh className="w-3 h-3"/></span>
            </div>
-           <div className="bg-[#111827] border border-gray-800 px-4 py-2 rounded-lg flex flex-col items-end shadow-inner">
+           <div className="bg-[#111827] border border-gray-800 px-4 py-2 rounded-lg flex flex-col items-end shadow-inner flex-1 md:flex-none">
               <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Data nodes</span>
               <span className="text-blue-400 font-mono text-sm font-bold flex items-center gap-1">2,481 <Database className="w-3 h-3"/></span>
            </div>

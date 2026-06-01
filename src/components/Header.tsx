@@ -61,14 +61,14 @@ export default function Header({ setActiveTab }: HeaderProps) {
             </button>
           )}
           
-          <div className="flex items-center gap-2 border-l pl-4 h-8">
-            <div className="relative cursor-pointer p-2 hover:bg-gray-100 rounded-full">
-              <MessageSquare className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 bg-[#00AE64] text-white text-[10px] w-5 h-4 flex items-center justify-center rounded-full border-2 border-white">99+</span>
+          <div className="flex items-center gap-1 sm:gap-2 border-l pl-2 sm:pl-4 h-8">
+            <div className="relative cursor-pointer p-1.5 sm:p-2 hover:bg-gray-100 rounded-full">
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+              <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 bg-[#00AE64] text-white text-[9px] sm:text-[10px] w-4 h-3.5 sm:w-5 sm:h-4 flex items-center justify-center rounded-full border border-white">99</span>
             </div>
-            <div className="relative cursor-pointer p-2 hover:bg-gray-100 rounded-full">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 bg-[#00AE64] text-white text-[10px] w-5 h-4 flex items-center justify-center rounded-full border-2 border-white">76</span>
+            <div className="relative cursor-pointer p-1.5 sm:p-2 hover:bg-gray-100 rounded-full">
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+              <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 bg-[#00AE64] text-white text-[9px] sm:text-[10px] w-4 h-3.5 sm:w-5 sm:h-4 flex items-center justify-center rounded-full border border-white">76</span>
             </div>
             <div 
               onClick={() => {
@@ -76,16 +76,16 @@ export default function Header({ setActiveTab }: HeaderProps) {
                   setActiveTab('Profile');
                 }
               }}
-              className="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-gray-100 rounded-md ml-2 transition-colors"
+              className="flex items-center gap-1 sm:gap-2 cursor-pointer p-1 sm:p-1.5 hover:bg-gray-100 rounded-md sm:ml-2 transition-colors"
             >
-              <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
                 {user?.photoURL && user.photoURL !== "" ? (
                   <img src={user.photoURL} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <User className="w-4 h-4 text-blue-500" />
+                  <User className="w-3.5 h-3.5 text-blue-500" />
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 sm:gap-1">
                 <span className="text-xs font-semibold text-gray-700 hidden sm:block">
                   {user?.displayName || 'Profile'}
                 </span>

@@ -70,15 +70,15 @@ export default function Watchlist() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full text-left border-collapse min-w-[300px]">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-widest">
-              <th className="py-3 px-6 font-bold">Asset</th>
-              <th className="py-3 px-6 font-bold text-right">Price</th>
-              <th className="py-3 px-6 font-bold text-right">24h Change</th>
-              <th className="py-3 px-6 font-bold text-center">Trend (7d)</th>
-              <th className="py-3 px-6 font-bold text-right">Action</th>
+            <tr className="bg-gray-50 border-b border-gray-200 text-[10px] xs:text-xs text-gray-500 uppercase tracking-widest">
+              <th className="py-3 px-3 sm:px-6 font-bold">Asset</th>
+              <th className="py-3 px-1.5 sm:px-6 font-bold text-right">Price</th>
+              <th className="py-3 px-1.5 sm:px-6 font-bold text-right">24h Change</th>
+              <th className="py-3 px-1.5 sm:px-6 font-bold text-center">Trend (7d)</th>
+              <th className="py-3 px-3 sm:px-6 font-bold text-right">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -90,29 +90,29 @@ export default function Watchlist() {
                 transition={{ delay: index * 0.05 }}
                 className="border-b border-gray-100 hover:bg-gray-50 transition-colors last:border-0"
               >
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                <td className="py-3 sm:py-4 px-3 sm:px-6">
+                  <div className="flex items-center gap-1.5 sm:gap-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                       <img src={coin.logo} alt={coin.symbol} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                     </div>
                     <div>
-                      <span className="font-bold text-sm text-gray-900 block">{coin.name}</span>
-                      <span className="text-xs text-gray-500 font-medium uppercase">{coin.symbol}</span>
+                      <span className="font-bold text-xs sm:text-sm text-gray-900 block">{coin.name}</span>
+                      <span className="text-[10px] sm:text-xs text-gray-500 font-medium uppercase">{coin.symbol}</span>
                     </div>
                   </div>
                 </td>
-                <td className="py-4 px-6 text-right font-bold text-sm text-gray-900">
+                <td className="py-3 sm:py-4 px-1.5 sm:px-6 text-right font-bold text-xs sm:text-sm text-gray-900 tabular-nums">
                   ${coin.price < 1 ? coin.price.toFixed(4) : coin.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
-                <td className="py-4 px-6 text-right">
-                  <div className={`flex items-center justify-end gap-1 text-sm font-bold ${coin.changePercent >= 0 ? 'text-[#00AE64]' : 'text-red-500'}`}>
-                    {coin.changePercent >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                <td className="py-3 sm:py-4 px-1.5 sm:px-6 text-right">
+                  <div className={`flex items-center justify-end gap-0.5 sm:gap-1 text-xs sm:text-sm font-bold ${coin.changePercent >= 0 ? 'text-[#00AE64]' : 'text-red-500'}`}>
+                    {coin.changePercent >= 0 ? <ArrowUpRight className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> : <ArrowDownRight className="w-3 sm:w-3.5 h-3 sm:h-3.5" />}
                     {Math.abs(coin.changePercent).toFixed(2)}%
                   </div>
                 </td>
-                <td className="py-4 px-6 w-32 items-center justify-center">
-                  <div className="h-8 w-24 mx-auto">
-                    <ResponsiveContainer width={100} height={32}>
+                <td className="py-3 sm:py-4 px-1.5 sm:px-6 w-20 sm:w-32 text-center">
+                  <div className="h-6 sm:h-8 w-16 sm:w-24 mx-auto">
+                    <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={coin.sparkline}>
                         <YAxis domain={['dataMin', 'dataMax']} hide />
                         <Line 
@@ -127,10 +127,10 @@ export default function Watchlist() {
                     </ResponsiveContainer>
                   </div>
                 </td>
-                <td className="py-4 px-6 text-right">
+                <td className="py-3 sm:py-4 px-3 sm:px-6 text-right">
                   <button 
                     onClick={() => setSelectedCoin(coin)}
-                    className="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-1.5 rounded transition-colors"
+                    className="bg-gray-900 hover:bg-gray-800 text-white text-[10px] sm:text-xs font-bold px-2.5 sm:px-4 py-1.5 rounded transition-colors"
                   >
                     Trade
                   </button>

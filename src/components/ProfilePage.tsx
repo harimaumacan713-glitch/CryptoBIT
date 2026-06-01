@@ -236,22 +236,26 @@ export default function ProfilePage() {
             {userProfile.walletAddress && (
                <button 
                  onClick={handleCopyAddress}
-                 className="mt-2 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-md border border-gray-200 inline-flex items-center gap-2 cursor-pointer transition-all active:scale-[0.97]"
+                 className="mt-2 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-md border border-gray-200 inline-flex items-center gap-2 cursor-pointer transition-all active:scale-[0.97] max-w-full overflow-hidden"
                  title="Salin Alamat Dompet"
                >
-                 <Wallet className="w-3.5 h-3.5 text-gray-500 hover:text-[#00AE64]" />
-                 <span className="font-mono text-xs text-gray-600 font-extrabold">{userProfile.walletAddress}</span>
+                 <Wallet className="w-3.5 h-3.5 text-gray-500 shrink-0 hover:text-[#00AE64]" />
+                 <span className="font-mono text-xs text-gray-600 font-extrabold truncate">
+                   {userProfile.walletAddress.length > 15 
+                     ? `${userProfile.walletAddress.slice(0, 6)}...${userProfile.walletAddress.slice(-4)}` 
+                     : userProfile.walletAddress}
+                 </span>
                  {copiedAddress ? (
-                   <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5 ml-1">
+                   <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5 ml-1 shrink-0">
                      <Check className="w-3 h-3 text-emerald-600" /> Tersalin!
                    </span>
                  ) : (
-                   <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600 ml-1" />
+                   <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600 ml-1 shrink-0" />
                  )}
                </button>
             )}
 
-            <div className="flex items-center gap-6 mt-4">
+            <div className="flex items-center gap-4 sm:gap-6 mt-4">
               <div onClick={() => setTxModal('Deposit')} className="flex flex-col items-center gap-1 cursor-pointer group">
                 <div className="w-10 h-10 rounded-full bg-[#00AE64]/10 text-[#00AE64] flex items-center justify-center group-hover:bg-[#00AE64] group-hover:text-white transition-colors">
                   <Download className="w-5 h-5" />
@@ -368,14 +372,14 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto no-scrollbar shadow-sm">
+              <table className="w-full text-left border-collapse min-w-[360px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-widest">
-                    <th className="py-4 px-6 font-bold">Asset</th>
-                    <th className="py-4 px-6 font-bold text-right">Balance</th>
-                    <th className="py-4 px-6 font-bold text-right">Value (USD)</th>
-                    <th className="py-4 px-6 font-bold text-right">Allocation</th>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-[10px] xs:text-xs text-gray-500 uppercase tracking-widest">
+                    <th className="py-3 px-3 sm:py-4 sm:px-6 font-bold">Asset</th>
+                    <th className="py-3 px-2 sm:py-4 sm:px-6 font-bold text-right">Balance</th>
+                    <th className="py-3 px-2 sm:py-4 sm:px-6 font-bold text-right flex-col text-right">Value (USD)</th>
+                    <th className="py-3 px-3 sm:py-4 sm:px-6 font-bold text-right">Allocation</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -386,29 +390,29 @@ export default function ProfilePage() {
                     const allocation = totalPortfolioValue > 0 ? (value / totalPortfolioValue) * 100 : 0;
                     
                     return (
-                      <tr key={symbol} className="border-b border-gray-100 hover:bg-gray-50 transition-colors group cursor-pointer">
-                        <td className="py-5 px-6 flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                      <tr key={symbol} className="border-b border-gray-100 hover:bg-gray-50 transition-colors group cursor-pointer text-xs sm:text-sm">
+                        <td className="py-3 px-3 sm:py-5 sm:px-6 flex items-center gap-2 sm:gap-4">
+                          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full border border-gray-100 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                             {/* Fetch real logo or fallback image */}
-                            <img src={cryptoInfo?.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${symbol}`} alt={symbol} className="w-6 h-6 object-contain" />
+                            <img src={cryptoInfo?.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${symbol}`} alt={symbol} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
                           </div>
                           <div>
-                            <span className="font-bold text-gray-900 block text-sm group-hover:text-[#00AE64] transition-colors">{symbol} Token</span>
-                            <span className="text-gray-500 text-xs font-semibold uppercase tracking-wider">{symbol}</span>
+                            <span className="font-bold text-gray-900 block text-xs sm:text-sm group-hover:text-[#00AE64] transition-colors">{symbol} Token</span>
+                            <span className="text-gray-500 text-[9px] sm:text-xs font-semibold uppercase tracking-wider">{symbol}</span>
                           </div>
                         </td>
-                        <td className="py-5 px-6 text-right">
-                          <span className="font-bold text-gray-900 block text-sm">{amount.toLocaleString(undefined, {maximumFractionDigits: 4})}</span>
-                          <span className="text-gray-500 text-xs font-medium">Available</span>
+                        <td className="py-3 px-2 sm:py-5 sm:px-6 text-right">
+                          <span className="font-bold text-gray-900 block text-xs sm:text-sm">{amount.toLocaleString(undefined, {maximumFractionDigits: 4})}</span>
+                          <span className="text-gray-500 text-[9px] sm:text-xs font-medium">Available</span>
                         </td>
-                        <td className="py-5 px-6 text-right">
-                          <span className="font-bold text-gray-900 block text-sm">${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <td className="py-3 px-2 sm:py-5 sm:px-6 text-right">
+                          <span className="font-bold text-gray-900 block text-xs sm:text-sm">${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                         </td>
-                        <td className="py-5 px-6">
-                          <div className="flex flex-col items-end justify-center w-24 ml-auto">
-                            <span className="text-xs font-bold text-gray-900 mb-1">{allocation.toFixed(1)}%</span>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                              <div className="bg-[#00AE64] h-1.5 rounded-full" style={{ width: `${allocation}%` }}></div>
+                        <td className="py-3 px-3 sm:py-5 sm:px-6">
+                          <div className="flex flex-col items-end justify-center w-16 sm:w-24 ml-auto">
+                            <span className="text-[10px] sm:text-xs font-bold text-gray-900 mb-1">{allocation.toFixed(1)}%</span>
+                            <div className="w-full bg-gray-100 rounded-full h-1 sm:h-1.5 overflow-hidden">
+                              <div className="bg-[#00AE64] h-1 sm:h-1.5 rounded-full" style={{ width: `${allocation}%` }}></div>
                             </div>
                           </div>
                         </td>
@@ -416,7 +420,7 @@ export default function ProfilePage() {
                     );
                   }) : (
                     <tr>
-                      <td colSpan={4} className="py-12 text-center text-gray-500 font-medium">
+                      <td colSpan={4} className="py-12 text-center text-gray-500 font-medium text-xs sm:text-sm">
                         You do not hold any assets yet. Head over to the Watchlist to buy some tokens!
                       </td>
                     </tr>
