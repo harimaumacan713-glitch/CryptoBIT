@@ -51,6 +51,7 @@ interface FirebaseContextType {
   transferAsset: (recipientEmail: string, assetSymbol: string, amount: number) => Promise<void>;
   tradeCrypto: (action: 'buy' | 'sell', symbol: string, amount: number, price: number) => Promise<void>;
   clearAllUserCoins: () => Promise<void>;
+  verifyUser: (userId: string, isVerified: boolean) => Promise<void>;
 }
 
 const app = initializeApp(firebaseConfig);
@@ -102,9 +103,10 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
           username: user.displayName || 'User',
           avatar: user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.uid}`,
           email: user.email,
-          balance: 100000, // starting demo balance
+          balance: 0, // starting demo balance is 0 USD for new users
           assets: {},
           isVerified: false,
+          hasClaimedVerificationReward: false,
           walletAddress: generateWalletAddress()
         });
       }
@@ -299,7 +301,13 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const logLiveTransaction = async (type: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER', coin: string, amount: number, price: number | undefined, usdValue: number, wallet: string) => {
     try {
       await addDoc(collection(db, 'liveTransactions'), {
-        type, coin, amount, price, usdValue, wallet, timestamp: new Date().toISOString()
+        type, 
+        coin, 
+        amount, 
+        price: price ?? null, 
+        usdValue, 
+        wallet, 
+        timestamp: new Date().toISOString()
       });
     } catch (e) {
       console.error('Failed to log live tx', e);
@@ -316,27 +324,107 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     await logLiveTransaction(type, 'USD', Math.abs(amount), 1, Math.abs(amount), userProfile.walletAddress || '0xUNKNOWN');
   };
 
-  const transferBalance = async (recipientEmail: string, amount: number) => {
-    if (!user || !userProfile) throw new Error('Must be logged in');
-    if (userProfile.balance < amount) throw new Error('Insufficient balance');
-    // For demo purposes, we will just deduct from sender, and skip recipient verification or complex queries.
-    // In a real app we would use a Cloud Function or a secure transaction.
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      balance: userProfile.balance - amount
+  const transferBalance = async (recipientIdentifier: string, amount: number) => {
+    if (!user || !userProfile) throw new Error('Anda harus masuk terlebih dahulu');
+    if (amount <= 0) throw new Error('Jumlah transfer harus lebih besar dari 0');
+    if (userProfile.balance < amount) throw new Error('Saldo USD Anda tidak mencukupi untuk melakukan transfer');
+
+    const cleanIdentifier = recipientIdentifier.trim();
+    if (cleanIdentifier.toLowerCase() === userProfile.walletAddress?.toLowerCase() || cleanIdentifier.toLowerCase() === userProfile.email?.toLowerCase()) {
+      throw new Error('Anda tidak dapat melakukan transfer ke akun Anda sendiri');
+    }
+
+    // Lookup recipient in users collection
+    let recipientRef = query(collection(db, 'users'), where('walletAddress', '==', cleanIdentifier));
+    let recipientSnap = await getDocs(recipientRef);
+    
+    if (recipientSnap.empty) {
+      recipientRef = query(collection(db, 'users'), where('email', '==', cleanIdentifier));
+      recipientSnap = await getDocs(recipientRef);
+    }
+
+    if (recipientSnap.empty) {
+      throw new Error('Penerima tidak ditemukan! Pastikan alamat dompet (e-wallet) atau email sudah benar.');
+    }
+
+    const recipientDoc = recipientSnap.docs[0];
+    const recipientId = recipientDoc.id;
+
+    const senderRef = doc(db, 'users', user.uid);
+    const targetRef = doc(db, 'users', recipientId);
+
+    await runTransaction(db, async (transaction) => {
+      const senderSnap = await transaction.get(senderRef);
+      const targetSnap = await transaction.get(targetRef);
+
+      if (!senderSnap.exists()) throw new Error('Data pengirim tidak terdaftar di database.');
+      if (!targetSnap.exists()) throw new Error('Penerima tidak valid.');
+
+      const currentSenderBal = senderSnap.data().balance || 0;
+      if (currentSenderBal < amount) throw new Error('Saldo USD Anda tidak cukup untuk transfer.');
+
+      const currentTargetBal = targetSnap.data().balance || 0;
+
+      transaction.update(senderRef, { balance: currentSenderBal - amount });
+      transaction.update(targetRef, { balance: currentTargetBal + amount });
     });
+
     await logLiveTransaction('TRANSFER', 'USD', amount, 1, amount, userProfile.walletAddress || '0xUNKNOWN');
   };
 
-  const transferAsset = async (recipientEmail: string, assetSymbol: string, amount: number) => {
-    if (!user || !userProfile) throw new Error('Must be logged in');
-    const currentAmount = userProfile.assets?.[assetSymbol] || 0;
-    if (currentAmount < amount) throw new Error('Insufficient asset balance');
+  const transferAsset = async (recipientIdentifier: string, assetSymbol: string, amount: number) => {
+    if (!user || !userProfile) throw new Error('Anda harus masuk terlebih dahulu');
+    if (amount <= 0) throw new Error('Jumlah transfer harus lebih besar dari 0');
     
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      [`assets.${assetSymbol}`]: currentAmount - amount
+    const currentAmount = userProfile.assets?.[assetSymbol] || 0;
+    if (currentAmount < amount) throw new Error(`Aset ${assetSymbol} Anda tidak mencukupi`);
+
+    const cleanIdentifier = recipientIdentifier.trim();
+    if (cleanIdentifier.toLowerCase() === userProfile.walletAddress?.toLowerCase() || cleanIdentifier.toLowerCase() === userProfile.email?.toLowerCase()) {
+      throw new Error('Anda tidak dapat melakukan transfer ke akun Anda sendiri');
+    }
+
+    // Lookup recipient in users collection
+    let recipientRef = query(collection(db, 'users'), where('walletAddress', '==', cleanIdentifier));
+    let recipientSnap = await getDocs(recipientRef);
+    
+    if (recipientSnap.empty) {
+      recipientRef = query(collection(db, 'users'), where('email', '==', cleanIdentifier));
+      recipientSnap = await getDocs(recipientRef);
+    }
+
+    if (recipientSnap.empty) {
+      throw new Error('Penerima tidak ditemukan! Pastikan alamat dompet (e-wallet) atau email sudah benar.');
+    }
+
+    const recipientDoc = recipientSnap.docs[0];
+    const recipientId = recipientDoc.id;
+
+    const senderRef = doc(db, 'users', user.uid);
+    const targetRef = doc(db, 'users', recipientId);
+
+    await runTransaction(db, async (transaction) => {
+      const senderSnap = await transaction.get(senderRef);
+      const targetSnap = await transaction.get(targetRef);
+
+      if (!senderSnap.exists()) throw new Error('Data pengirim tidak terdaftar di database.');
+      if (!targetSnap.exists()) throw new Error('Penerima tidak valid.');
+
+      const senderAssets = senderSnap.data().assets || {};
+      const currentSenderAssetAmount = senderAssets[assetSymbol] || 0;
+      if (currentSenderAssetAmount < amount) throw new Error(`Aset ${assetSymbol} Anda tidak mencukupi untuk transfer.`);
+
+      const targetAssets = targetSnap.data().assets || {};
+      const currentTargetAssetAmount = targetAssets[assetSymbol] || 0;
+
+      transaction.update(senderRef, {
+        [`assets.${assetSymbol}`]: currentSenderAssetAmount - amount
+      });
+      transaction.update(targetRef, {
+        [`assets.${assetSymbol}`]: currentTargetAssetAmount + amount
+      });
     });
+
     await logLiveTransaction('TRANSFER', assetSymbol, amount, undefined, 0, userProfile.walletAddress || '0xUNKNOWN');
   };
 
@@ -554,10 +642,49 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const verifyUser = async (userId: string, isVerified: boolean) => {
+    if (!user) {
+      throw new Error('Unauthorized: Anda harus masuk terlebih dahulu untuk melakukan verifikasi.');
+    }
+    if (!userId) {
+      throw new Error('Bad Request: User ID tidak boleh kosong.');
+    }
+    if (user.uid !== userId) {
+      throw new Error('Unauthorized: Anda tidak diizinkan mengubah status verifikasi profil pengguna lain.');
+    }
+
+    try {
+      const userRef = doc(db, 'users', userId);
+      await runTransaction(db, async (transaction) => {
+        const docSnap = await transaction.get(userRef);
+        if (!docSnap.exists()) {
+          throw new Error('Data pengguna tidak terdaftar di database.');
+        }
+
+        const data = docSnap.data();
+        const currentVerified = data.isVerified || false;
+        const currentBalance = data.balance || 0;
+        const hasClaimed = data.hasClaimedVerificationReward || false;
+
+        let updateData: any = { isVerified };
+
+        if (isVerified && !currentVerified && !hasClaimed) {
+          updateData.balance = currentBalance + 100;
+          updateData.hasClaimedVerificationReward = true;
+        }
+
+        transaction.update(userRef, updateData);
+      });
+    } catch (err: any) {
+      console.error("Gagal memperbarui status verifikasi", err);
+      throw new Error(`Execution Error: Gagal memperbarui status verifikasi: ${err.message}`);
+    }
+  };
+
   return (
     <FirebaseContext.Provider value={{
       user, userProfile, coins, orders, loading, db, login, logout,
-      createCoin, placeOrder, updateBalance, transferBalance, transferAsset, tradeCrypto, clearAllUserCoins
+      createCoin, placeOrder, updateBalance, transferBalance, transferAsset, tradeCrypto, clearAllUserCoins, verifyUser
     }}>
       {children}
     </FirebaseContext.Provider>

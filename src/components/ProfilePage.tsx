@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useFirebase } from './FirebaseProvider';
-import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight } from 'lucide-react';
+import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ProfileModal from './ProfileModal';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const cryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
   const [activeTab, setActiveTab] = useState('Assets');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
   
   // Transaction Modals State
   const [txModal, setTxModal] = useState<'Deposit' | 'Withdraw' | 'Transfer' | null>(null);
@@ -27,6 +28,24 @@ export default function ProfilePage() {
   const [txRecipient, setTxRecipient] = useState('');
   const [txAsset, setTxAsset] = useState('USD');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleCopyAddress = () => {
+    if (!userProfile?.walletAddress) return;
+    try {
+      navigator.clipboard.writeText(userProfile.walletAddress);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    } catch (err) {
+      const tempInput = document.createElement('input');
+      tempInput.value = userProfile.walletAddress;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    }
+  };
 
   if (!user || !userProfile) return null;
 
@@ -112,30 +131,36 @@ export default function ProfilePage() {
                 
                 <div className="p-6 space-y-4">
                   {txModal === 'Transfer' && (
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Asset</label>
-                        <select 
-                          value={txAsset} 
-                          onChange={e => setTxAsset(e.target.value)}
-                          className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none"
-                        >
-                          <option value="USD">USD Balance</option>
-                          {assetEntries.map(([symbol]) => (
-                            <option key={symbol} value={symbol}>{symbol}</option>
-                          ))}
-                        </select>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex gap-4">
+                        <div className="w-[110px] shrink-0">
+                          <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block mb-1">Pilih Aset</label>
+                          <select 
+                            value={txAsset} 
+                            onChange={e => setTxAsset(e.target.value)}
+                            className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none bg-white font-bold text-gray-800"
+                          >
+                            <option value="USD">USD</option>
+                            {assetEntries.map(([symbol]) => (
+                              <option key={symbol} value={symbol}>{symbol}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block mb-1">E-Wallet Address / Email Penerima</label>
+                          <input 
+                            type="text" 
+                            value={txRecipient}
+                            onChange={e => setTxRecipient(e.target.value)}
+                            placeholder="Contoh: 0x8283956a85f11... atau email"
+                            className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none font-mono font-semibold text-gray-900"
+                          />
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Recipient ID / Email</label>
-                        <input 
-                          type="text" 
-                          value={txRecipient}
-                          onChange={e => setTxRecipient(e.target.value)}
-                          placeholder="user@example.com"
-                          className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none"
-                        />
-                      </div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide leading-normal bg-gray-50 p-2.5 rounded-md border border-gray-150 flex items-start gap-1.5">
+                        <span className="text-[#00AE64]">💡</span> 
+                        <span>Anda dapat mentransfer dana secara instan ke pengguna lain menggunakan alamat e-wallet hex atau alamat email akun mereka.</span>
+                      </p>
                     </div>
                   )}
 
@@ -209,10 +234,21 @@ export default function ProfilePage() {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">{user.displayName || 'Cryptobit User'}</h1>
             <p className="text-gray-500 font-medium">@{user.displayName?.replace(/\s+/g, '').toLowerCase() || 'user'}</p>
             {userProfile.walletAddress && (
-               <div className="mt-2 bg-gray-100/80 px-3 py-1.5 rounded-md border border-gray-200 inline-flex items-center gap-2">
-                 <Wallet className="w-3.5 h-3.5 text-gray-500" />
-                 <span className="font-mono text-xs text-gray-600 font-bold">{userProfile.walletAddress}</span>
-               </div>
+               <button 
+                 onClick={handleCopyAddress}
+                 className="mt-2 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-md border border-gray-200 inline-flex items-center gap-2 cursor-pointer transition-all active:scale-[0.97]"
+                 title="Salin Alamat Dompet"
+               >
+                 <Wallet className="w-3.5 h-3.5 text-gray-500 hover:text-[#00AE64]" />
+                 <span className="font-mono text-xs text-gray-600 font-extrabold">{userProfile.walletAddress}</span>
+                 {copiedAddress ? (
+                   <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5 ml-1">
+                     <Check className="w-3 h-3 text-emerald-600" /> Tersalin!
+                   </span>
+                 ) : (
+                   <Copy className="w-3 h-3 text-gray-400 hover:text-gray-600 ml-1" />
+                 )}
+               </button>
             )}
 
             <div className="flex items-center gap-6 mt-4">

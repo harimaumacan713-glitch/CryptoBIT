@@ -40,7 +40,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if true;
-      allow write: if isOwner(userId);
+      allow write: if isSignedIn();
     }
   }
 }

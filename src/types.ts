@@ -115,6 +115,7 @@ export interface Post {
     isVerified?: boolean;
   };
   content: string;
+  imageUrl?: string;
   timestamp: string;
   likes: number;
   comments: number;

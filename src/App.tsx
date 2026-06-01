@@ -43,10 +43,10 @@ export default function App() {
       <main className="max-w-[1400px] mx-auto px-4 pb-12 flex gap-6">
         {/* Main Content Area */}
         <div className="flex-1 min-w-0">
-          <TrendingStocks />
-          
           {activeTab === 'Stream' ? (
             <>
+              <TrendingStocks />
+              
               <div className="bg-gradient-to-r from-emerald-950 via-[#0A1810] to-[#0D1E15] rounded-sm p-6 mb-4 text-white relative overflow-hidden group border border-[#00AE64]/20 shadow-xl shadow-emerald-950/20">
                 {/* Background Image overlay */}
                 <img 

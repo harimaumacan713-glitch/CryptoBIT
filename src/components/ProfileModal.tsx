@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFirebase } from './FirebaseProvider';
 import { updateProfile } from 'firebase/auth';
-import { X, Camera, Mail, Phone, Lock, User, CheckCircle2, LogOut, Loader2, ShieldCheck } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { X, Camera, Mail, Phone, Lock, User, CheckCircle2, LogOut, Loader2, ShieldCheck, Image as ImageIcon } from 'lucide-react';
 
 export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { user, logout } = useFirebase();
+  const { user, logout, db, userProfile } = useFirebase();
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
   
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '+62 812-3456-7890');
-  const [email, setEmail] = useState(user?.email || '');
+  const [displayName, setDisplayName] = useState(userProfile?.username || user?.displayName || '');
+  const [photoURL, setPhotoURL] = useState(userProfile?.avatar || user?.photoURL || '');
+  const [phoneNumber, setPhoneNumber] = useState(userProfile?.phoneNumber || '+62 812-3456-7890');
+  const [email, setEmail] = useState(userProfile?.email || user?.email || '');
   
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -20,23 +21,63 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
+  // Sync profile details if the context updates
+  useEffect(() => {
+    if (userProfile) {
+      setDisplayName(userProfile.username || user?.displayName || '');
+      setPhotoURL(userProfile.avatar || user?.photoURL || '');
+      if (userProfile.phoneNumber) setPhoneNumber(userProfile.phoneNumber);
+      if (userProfile.email) setEmail(userProfile.email);
+    }
+  }, [userProfile, user]);
+
   if (!isOpen || !user) return null;
+
+  const handleProfileFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("🚨 Batas Maksimal: Ukuran berkas gambar maksimal adalah 2MB!");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setPhotoURL(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerImageUpload = () => {
+    document.getElementById('profile-picture-file')?.click();
+  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
     try {
+      // 1. Update Firebase Auth Profile
       await updateProfile(user, {
         displayName,
         photoURL
       });
-      // Mock saving phone/email
-      await new Promise(r => setTimeout(r, 1000));
+
+      // 2. Update Firestore User Document so all client states update in real-time
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        username: displayName,
+        avatar: photoURL,
+        phoneNumber: phoneNumber,
+        email: email
+      });
       
       setIsSaving(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert("Gagal memperbarui profil: " + e.message);
       setIsSaving(false);
     }
   };
@@ -136,7 +177,7 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
                 {activeTab === 'profile' && (
                   <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                     <div className="flex flex-col items-center mb-8">
-                      <div className="relative group">
+                      <div className="relative group cursor-pointer" onClick={triggerImageUpload}>
                         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-800 bg-gray-900 flex items-center justify-center">
                           {photoURL && photoURL !== "" ? (
                             <img src={photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -147,18 +188,28 @@ export default function ProfileModal({ isOpen, onClose }: { isOpen: boolean; onC
                         <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                           <Camera className="w-6 h-6 text-white" />
                         </div>
-                        <button className="absolute bottom-0 right-0 p-2 bg-[#00AE64] rounded-full text-white border-2 border-[#0A0E17] hover:scale-110 transition-transform">
+                        <button 
+                          type="button" 
+                          onClick={(e) => { e.stopPropagation(); triggerImageUpload(); }}
+                          className="absolute bottom-0 right-0 p-2 bg-[#00AE64] rounded-full text-white border-2 border-[#0A0E17] hover:scale-110 transition-transform cursor-pointer"
+                        >
                           <Camera className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-3 hover:text-[#00AE64] cursor-pointer">Change Image URL</p>
-                       <input 
-                          type="text" 
-                          value={photoURL} 
-                          onChange={(e) => setPhotoURL(e.target.value)}
-                          placeholder="Image URL"
-                          className="w-full max-w-[200px] mt-2 bg-gray-900 border border-gray-800 rounded p-1 text-xs text-center text-gray-300 focus:outline-none focus:border-[#00AE64]"
-                        />
+                      <button 
+                        type="button"
+                        onClick={triggerImageUpload}
+                        className="text-xs text-gray-300 mt-3.5 hover:text-[#00AE64] transition-colors flex items-center gap-1.5 bg-gray-900 border border-gray-800 px-4 py-2 rounded-xl font-bold cursor-pointer"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-[#00AE64]" /> Pilih dari Galeri / Berkas
+                      </button>
+                      <input 
+                        type="file"
+                        id="profile-picture-file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleProfileFileChange}
+                      />
                     </div>
 
                     <div className="space-y-4">

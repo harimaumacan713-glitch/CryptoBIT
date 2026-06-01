@@ -3,22 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Search, MessageSquare, Bell, User, ChevronDown } from 'lucide-react';
+import { Search, MessageSquare, Bell, User, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useFirebase } from './FirebaseProvider';
 import { useState } from 'react';
 import ProfileModal from './ProfileModal';
+import VerificationModal from './VerificationModal';
 
 interface HeaderProps {
   setActiveTab?: (tab: string) => void;
 }
 
 export default function Header({ setActiveTab }: HeaderProps) {
-  const { user } = useFirebase();
+  const { user, userProfile } = useFirebase();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   return (
     <header className="h-16 border-b border-gray-200 bg-white sticky top-0 z-50">
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      <VerificationModal isOpen={isVerificationModalOpen} onClose={() => setIsVerificationModalOpen(false)} />
       <div className="max-w-[1400px] mx-auto h-full px-4 flex items-center justify-between">
         <div className="flex items-center gap-6 flex-1">
           <div className="flex items-center gap-2 cursor-pointer group">
@@ -40,9 +43,23 @@ export default function Header({ setActiveTab }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="hidden lg:block border border-[#00AE64] text-[#00AE64] text-xs font-semibold px-4 py-1.5 rounded hover:bg-[#00AE64]/5 transition-colors">
-            Berlangganan Pro
-          </button>
+          {userProfile?.isVerified ? (
+            <button 
+              onClick={() => setIsVerificationModalOpen(true)}
+              className="hidden lg:flex items-center gap-1.5 border border-emerald-500 bg-emerald-50/50 text-[#00AE64] text-xs font-bold px-3.5 py-1.5 rounded-md hover:bg-emerald-50 transition-colors cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Terverifikasi
+            </button>
+          ) : (
+            <button 
+              onClick={() => setIsVerificationModalOpen(true)}
+              className="hidden lg:flex items-center gap-1.5 border border-[#00AE64] text-[#00AE64] text-xs font-bold px-3.5 py-1.5 rounded-md hover:bg-[#00AE64]/5 transition-colors cursor-pointer active:scale-95 duration-150"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Verifikasi Akun
+            </button>
+          )}
           
           <div className="flex items-center gap-2 border-l pl-4 h-8">
             <div className="relative cursor-pointer p-2 hover:bg-gray-100 rounded-full">
