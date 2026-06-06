@@ -5,22 +5,21 @@
 
 import { ChevronDown, Plus, Save, Maximize2, MoreVertical } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { useFirebase } from './FirebaseProvider';
 import { OrderBookData } from '../types';
 
 const initialOrderBooks: OrderBookData[] = [
   {
     symbol: 'BTC',
-    price: 64230.50,
-    change: -1240.20,
-    changePercent: -1.89,
-    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/btc.png',
+    price: 92450.25,
+    change: 1220.50,
+    changePercent: 1.34,
+    logo: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png',
     stats: {
-      open: '65,470.70',
-      high: '66,120.00',
-      low: '63,900.50',
-      prev: '65,470.70',
+      open: '91,229.75',
+      high: '93,120.00',
+      low: '90,950.50',
+      prev: '91,229.75',
       lot: '2.25M',
       val: '1351.3B'
     },
@@ -29,15 +28,15 @@ const initialOrderBooks: OrderBookData[] = [
   },
   {
     symbol: 'ETH',
-    price: 3450.75,
-    change: 160.20,
-    changePercent: 4.87,
-    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/eth.png',
+    price: 3412.50,
+    change: -42.10,
+    changePercent: -1.22,
+    logo: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png',
     stats: {
-      open: '3,290.55',
+      open: '3,454.60',
       high: '3,510.00',
-      low: '3,280.00',
-      prev: '3,290.55',
+      low: '3,380.00',
+      prev: '3,454.60',
       lot: '1.36M',
       val: '414.8B'
     },
@@ -46,15 +45,15 @@ const initialOrderBooks: OrderBookData[] = [
   },
   {
     symbol: 'SOL',
-    price: 145.20,
-    change: 5.40,
-    changePercent: 3.86,
-    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/sol.png',
+    price: 168.35,
+    change: 8.50,
+    changePercent: 5.32,
+    logo: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/sol.png',
     stats: {
-      open: '139.80',
-      high: '148.50',
-      low: '138.20',
-      prev: '139.80',
+      open: '159.85',
+      high: '172.50',
+      low: '158.20',
+      prev: '159.85',
       lot: '386.98K',
       val: '28.4B'
     },
@@ -64,17 +63,8 @@ const initialOrderBooks: OrderBookData[] = [
 ];
 
 export default function Orderbook() {
-  const { coins } = useFirebase();
-  const initialCryptoData = useMemo(() => initialOrderBooks.map(ob => ({
-    symbol: ob.symbol,
-    name: ob.symbol,
-    price: ob.price,
-    change: ob.change,
-    changePercent: ob.changePercent,
-    sparkline: []
-  })), []);
-
-  const livePrices = useRealTimeCrypto(initialCryptoData, coins);
+  const { coins, realTimeCryptos } = useFirebase();
+  const livePrices = realTimeCryptos;
 
   const orderbooks = useMemo(() => {
     // Generate listed items dynamically, starting with initial ones

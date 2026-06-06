@@ -103,12 +103,28 @@ export interface UserProfile {
   assets: Record<string, number>;
   assetsInvested?: Record<string, number>;
   isVerified: boolean;
+  verificationStatus?: 'pending' | 'approved' | 'rejected' | 'none';
   walletAddress?: string;
+  kycStatus?: 'NOT_SUBMITTED' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED';
+  kycSubmittedAt?: string;
+  kycDetails?: {
+    fullName: string;
+    idNumber: string;
+    detectedName: string;
+    detectedNumber: string;
+    reason?: string;
+    checks?: {
+      nameMatched: boolean;
+      numberMatched: boolean;
+      isValidID: boolean;
+    }
+  };
 }
 
 export interface Post {
   id: string;
   author: {
+    uid?: string;
     name: string;
     username: string;
     avatar: string;
@@ -121,3 +137,45 @@ export interface Post {
   comments: number;
   shares: number;
 }
+
+export interface Comment {
+  id: string;
+  postId: string;
+  author: {
+    uid: string;
+    name: string;
+    avatar: string;
+    isVerified?: boolean;
+  };
+  content: string;
+  createdAt: number;
+}
+
+export interface AppNotification {
+  id: string;
+  recipientUid: string;
+  sender: {
+    uid: string;
+    name: string;
+    avatar: string;
+  };
+  type: 'comment' | 'message' | 'system';
+  message: string;
+  postId?: string;
+  isRead: boolean;
+  createdAt: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderUid: string;
+  senderName: string;
+  senderAvatar: string;
+  recipientUid: string;
+  recipientName: string;
+  recipientAvatar: string;
+  content: string;
+  createdAt: number;
+  isRead?: boolean;
+}
+

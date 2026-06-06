@@ -75,6 +75,10 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
   // Custom Toast state
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Under review and custom decision simulation state variables
+  const [reviewTimeLeft, setReviewTimeLeft] = useState<number>(0);
+  const [isProcessingDecision, setIsProcessingDecision] = useState(false);
+
   // Rejection state
   const [rejectedAt, setRejectedAt] = useState<number | null>(() => {
     if (!user) return null;
@@ -100,6 +104,8 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
         // Cooldown finished! Clear state.
         localStorage.removeItem(`kyc_rejected_${user?.uid}`);
         localStorage.removeItem(`kyc_rejected_reason_${user?.uid}`);
+        const uRef = doc(db, 'users', user.uid);
+        updateDoc(uRef, { kycStatus: 'NOT_SUBMITTED' }).catch(console.error);
         setRejectedAt(null);
         setTimeLeft(0);
       } else {
@@ -112,6 +118,26 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
     return () => clearInterval(interval);
   }, [rejectedAt, user?.uid]);
 
+  React.useEffect(() => {
+    if (userProfile?.kycStatus !== 'UNDER_REVIEW' || !userProfile?.kycSubmittedAt) {
+      return;
+    }
+    const submittedTime = new Date(userProfile.kycSubmittedAt).getTime();
+    const updateCountdown = () => {
+      const now = Date.now();
+      const target = submittedTime + COOLDOWN_MS;
+      const diff = target - now;
+      if (diff <= 0) {
+        setReviewTimeLeft(0);
+      } else {
+        setReviewTimeLeft(diff);
+      }
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [userProfile?.kycStatus, userProfile?.kycSubmittedAt]);
+
   if (!isOpen || !user || !userProfile) return null;
 
   const triggerToast = (type: 'success' | 'error', message: string) => {
@@ -121,21 +147,76 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
     }, 4500);
   };
 
-  const handleRejectKyc = (reason: string) => {
+  const handleRejectKyc = async (reason: string) => {
     const timestamp = Date.now();
     localStorage.setItem(`kyc_rejected_${user.uid}`, timestamp.toString());
     localStorage.setItem(`kyc_rejected_reason_${user.uid}`, reason);
     setRejectedAt(timestamp);
     setRejectionReason(reason);
+    
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        kycStatus: 'REJECTED'
+      });
+    } catch (e) {
+      console.error("Gagal menyinkronkan status penolakan ke Firestore:", e);
+    }
     triggerToast('error', `🚨 Pengajuan Ditolak: ${reason}`);
   };
 
-  const handleResetCooldown = () => {
+  const handleResetCooldown = async () => {
     localStorage.removeItem(`kyc_rejected_${user.uid}`);
     localStorage.removeItem(`kyc_rejected_reason_${user.uid}`);
+    
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        kycStatus: 'NOT_SUBMITTED',
+        kycDetails: null
+      });
+    } catch (e) {
+      console.error("Gagal mereset status KYC di Firestore:", e);
+    }
+
     setRejectedAt(null);
     setTimeLeft(0);
     triggerToast('success', "🔄 Simulasi: Periode tunggu berhasil di-reset! Anda sekarang bisa mendaftar ulang.");
+  };
+
+  const handleProcessDecision = async () => {
+    if (!user || !userProfile || !userProfile.kycDetails) return;
+    setIsProcessingDecision(true);
+    
+    try {
+      const checks = userProfile.kycDetails.checks;
+      const isMatch = checks?.nameMatched && checks?.numberMatched && checks?.isValidID;
+
+      if (isMatch) {
+        // Approve
+        await verifyUser(user.uid, true);
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, {
+          kycStatus: 'VERIFIED'
+        });
+        triggerToast('success', "Akun Anda Berhasil Terverifikasi! Saldo Reward verifikasi $100 telah dikreditkan.");
+      } else {
+        // Reject
+        let reason = "Nama atau nomor identitas tidak sesuai dengan kartu fisik yang diunggah.";
+        if (!checks?.isValidID) {
+          reason = "Gambar dokumen terdeteksi palsu, blank, atau tidak dikenali sebagai kartu identasi resmi oleh kecerdasan buatan Gemini.";
+        } else if (!checks?.numberMatched) {
+          reason = `Nomor identitas input (${userProfile.kycDetails.idNumber}) berbeda dengan nomor di dokumen fisik (${userProfile.kycDetails.detectedNumber}).`;
+        } else if (!checks?.nameMatched) {
+          reason = `Nama input (${userProfile.kycDetails.fullName}) berbeda dengan nama di dokumen fisik (${userProfile.kycDetails.detectedName}).`;
+        }
+        await handleRejectKyc(reason);
+      }
+    } catch (err: any) {
+      triggerToast('error', "Gagal memproses keputusan review: " + err.message);
+    } finally {
+      setIsProcessingDecision(false);
+    }
   };
 
   const formatTimeLeft = (ms: number) => {
@@ -179,7 +260,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
       return;
     }
 
-    if (!kycForm.hasUploadedId) {
+    if (!kycForm.hasUploadedId || !idImageBase64) {
       triggerToast('error', "🚨 Dokumen Diperlukan: Harap unggah Foto Kartu Identitas.");
       return;
     }
@@ -190,23 +271,49 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
     }
 
     setIsSubmitting(true);
+    setKycStepText("Mengenkripsi berkas...");
     
     try {
-      // Step 1: Document OCR simulation
-      setKycStepText("Membaca data identitas OCR...");
-      await new Promise(r => setTimeout(r, 850));
-      
-      // Step 2: ZK Encryption checking simulation
-      setKycStepText("Mengenkripsi data dengan Zero-Knowledge Proof...");
-      await new Promise(r => setTimeout(r, 850));
-      
-      // Step 3: Blockchain signature signing simulation
-      setKycStepText("Menyimpan identitas terenkripsi ke Ledger...");
-      await new Promise(r => setTimeout(r, 850));
+      // Direct high-fidelity scan call to Gemini endpoint from Express
+      setKycStepText("Menjalankan AI Vision (Gemini OCR)...");
+      const resp = await fetch("/api/kyc/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: cleanedName,
+          idNumber: cleanedId,
+          idImageBase64: idImageBase64
+        }),
+      });
 
-      await verifyUser(user.uid, true);
-      
-      triggerToast('success', "Akun Anda Berhasil Terverifikasi! Saldo Reward verifikasi $100 telah dikreditkan.");
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(errorData.error || "Gagal menghubungi server verifikasi.");
+      }
+
+      const result = await resp.json();
+
+      setKycStepText("Menyimpan ke Ledger Kepatuhan...");
+      await new Promise(r => setTimeout(r, 600));
+
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        kycStatus: 'UNDER_REVIEW',
+        kycSubmittedAt: new Date().toISOString(),
+        kycDetails: {
+          fullName: cleanedName,
+          idNumber: cleanedId,
+          detectedName: result.detectedName || "TIDAK TERDETEKSI",
+          detectedNumber: result.detectedNumber || "TIDAK TERDETEKSI",
+          checks: {
+            nameMatched: result.checks?.nameMatched || false,
+            numberMatched: result.checks?.numberMatched || false,
+            isValidID: result.checks?.isValidID || false
+          }
+        }
+      });
+
+      triggerToast('success', "Dokumen Anda berhasil dipindai otomatis! Permohonan masuk antrean Backoffice (Maks 24 Jam).");
     } catch (err: any) {
       triggerToast('error', "Verifikasi gagal: " + err.message);
     } finally {
@@ -280,7 +387,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                     </span>
                     <h3 className="text-lg font-black text-gray-950 mt-3 leading-none">KYC Verifikasi Sukses!</h3>
                     <p className="text-gray-500 text-xs mt-2.5 max-w-sm leading-relaxed">
-                      Selamat, akun Anda telah lolos prosedur pengprüfung kepatuhan DApps. Anda sekarang memiliki hak istimewa penuh di ekosistem **CryptoBit**:
+                      Selamat, akun Anda telah lolos prosedur pengujian kepatuhan DApps. Anda sekarang memiliki hak istimewa penuh di ekosistem **CryptoBit**:
                     </p>
                   </div>
 
@@ -306,7 +413,84 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                     Tutup Dashboard
                   </button>
                 </div>
-              ) : rejectedAt && timeLeft > 0 ? (
+              ) : userProfile.kycStatus === 'UNDER_REVIEW' ? (
+                // UNDER_REVIEW View (24 Hours Manual review Queue Timeline)
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center text-center py-2 space-y-2">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center animate-pulse">
+                      <RefreshCw className="w-5 h-5 animate-spin duration-1000" />
+                    </div>
+                    <div>
+                      <span className="bg-amber-500/10 border border-amber-500/20 text-amber-700 text-[9px] tracking-wider font-extrabold uppercase px-2.5 py-1 rounded inline-flex items-center gap-1.5 shadow-sm">
+                        ● Sedang Ditinjau Backoffice (Maks 24 Jam Kerja)
+                      </span>
+                      <h3 className="text-md font-black text-gray-950 mt-2.5 leading-tight">Proses Verifikasi Kepatuhan</h3>
+                    </div>
+                  </div>
+
+                  {/* Audit Trail Logs */}
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block animate-pulse">Audit Trail Sistem & OCR</span>
+                    <div className="font-mono bg-slate-950 text-emerald-400 p-4 rounded-xl text-[10px] leading-normal border border-slate-800 shadow-inner max-h-[190px] overflow-y-auto space-y-1 scrollbar-thin">
+                      <p className="text-slate-400">[info] INITIALIZING SECURE SCAN ENGINE... OK</p>
+                      <p className="text-slate-400">[info] RUNNING GEMINI AI MULTIMODAL VISION OCR...</p>
+                      <p className="text-emerald-300 font-semibold">  [+] Nama Terbaca KTP : &quot;{userProfile.kycDetails?.detectedName}&quot;</p>
+                      <p className="text-emerald-300 font-semibold">  [+] NIK Terbaca KTP  : &quot;{userProfile.kycDetails?.detectedNumber}&quot;</p>
+                      <p className="text-slate-405">[info] PERBANDINGAN METADATA INPUT DENGAN DOKUMEN FISIK:</p>
+                      <p className={userProfile.kycDetails?.checks?.nameMatched ? "text-emerald-400 ml-2" : "text-rose-450 ml-2 font-bold animate-pulse"}>
+                        {userProfile.kycDetails?.checks?.nameMatched ? "✓ NAMA SESUAI/COCOK" : "✗ NAMA BERBEDA / TIDAK SESUAI KTP"}
+                      </p>
+                      <p className={userProfile.kycDetails?.checks?.numberMatched ? "text-emerald-400 ml-2" : "text-rose-450 ml-2 font-bold animate-pulse"}>
+                        {userProfile.kycDetails?.checks?.numberMatched ? "✓ NIK/PASSPORT ID COCOK" : "✗ NIK/PASSPORT ID TIDAK SESUAI KTP"}
+                      </p>
+                      <p className="text-slate-400 mt-1">[info] ANTRIAN SUBMISI: Berkas masuk dalam antrean audit kepatuhan manual Backoffice.</p>
+                      <p className={userProfile.kycDetails?.checks?.nameMatched && userProfile.kycDetails?.checks?.numberMatched ? "text-amber-300" : "text-rose-400 font-bold animate-pulse"}>
+                        [status] PROYEKSI KEPUTUSAN: {userProfile.kycDetails?.checks?.nameMatched && userProfile.kycDetails?.checks?.numberMatched ? "DIREKOMENDASIKAN PERSETUJUAN" : "AKAN DITOLAK OTOMATIS OLEH SYSTEM"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Countdown Timer */}
+                  <div className="bg-slate-50 border border-slate-150 rounded-xl p-3.5 text-center">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Sisa Waktu Proses Maksimal (24 Jam)</span>
+                    <p className="text-lg font-extrabold text-gray-950 font-mono tracking-wider">
+                      {formatTimeLeft(reviewTimeLeft)}
+                    </p>
+                  </div>
+
+                  {/* Fast track sandbox widget */}
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 space-y-3">
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-[10px] uppercase tracking-wider text-emerald-950 font-sans">Proses Pengajuan</h4>
+                      <p className="text-[11px] leading-relaxed text-slate-500">
+                        Sesuai regulasi, dokumen ditinjau dalam 24 jam kerja. Anda dapat meninjau status pengajuan Anda kapan saja melalui dashboard ini.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleProcessDecision}
+                      disabled={isProcessingDecision}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-extrabold uppercase py-2.5 rounded-lg transition-all text-[11px] flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      {isProcessingDecision ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 font-bold" /> Cek Status Terkini
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={onClose}
+                    className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs uppercase py-3 rounded-lg transition-all cursor-pointer text-center font-sans tracking-wide"
+                  >
+                    Kembali ke Dashboard
+                  </button>
+                </div>
+              ) : (rejectedAt && timeLeft > 0) || userProfile.kycStatus === 'REJECTED' ? (
                 // Rejected view with countdown
                 <div className="flex flex-col items-center text-center py-6 space-y-4">
                   <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center shadow-inner">
@@ -318,17 +502,17 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                     </span>
                     <h3 className="text-lg font-black text-gray-950 mt-3 leading-none">Verifikasi Gagal / Dibatalkan</h3>
                     <p className="text-rose-800 text-xs font-semibold bg-rose-50/60 border border-rose-100 p-3 rounded-xl mt-3.5 leading-relaxed max-w-sm mx-auto">
-                      <strong>Alasan Sistem:</strong> {rejectionReason}
+                      <strong>Alasan Sistem:</strong> {rejectionReason || "Setelah peninjauan 24 jam, nama atau nomor ID terungkap tidak sesuai dengan dokumen fisik."}
                     </p>
                     <p className="text-gray-500 text-[11px] mt-4 max-w-sm leading-relaxed font-semibold">
-                      Sesuai dengan kebijakan penyaringan kepatuhan platform kami, Anda terdeteksi melakukan tindakan tidak wajar atau melanggar ketentuan pengajuan yang adil. Pengajuan ditangguhkan selama 24 jam.
+                      Sesuai dengan kebijakan kepatuhan KYC platform, data yang Anda ajukan melanggar pencocokan kesesuaian identitas asli. Pengajuan pendaftaran ulang dikunci selama 24 jam.
                     </p>
                   </div>
 
                   <div className="w-full bg-slate-50 border border-slate-150 rounded-xl p-4 mt-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dapat Mengajukan Ulang Dalam</span>
                     <p className="text-sm font-extrabold text-[#00AE64] font-mono tracking-wider">
-                      {formatTimeLeft(timeLeft)}
+                      {timeLeft > 0 ? formatTimeLeft(timeLeft) : "0 Jam 0 Menit 0 Detik"}
                     </p>
                   </div>
 
@@ -344,7 +528,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                       onClick={handleResetCooldown}
                       className="text-[9px] text-gray-400 hover:text-gray-700 flex items-center justify-center gap-1.5 transition-all mt-2 cursor-pointer font-extrabold uppercase tracking-wider"
                     >
-                      <RefreshCw className="w-3 h-3" /> Bersihkan Cooldown (Simulasi Review)*
+                      <RefreshCw className="w-3 h-3" /> Bersihkan Cooldown (Mulai Pengajuan Baru)*
                     </button>
                   </div>
                 </div>

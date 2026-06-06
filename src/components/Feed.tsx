@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useFirebase } from './FirebaseProvider';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import PostComments from './PostComments';
 import { 
   Search, 
   ChevronDown, 
@@ -26,7 +27,8 @@ import {
   Sparkles,
   ArrowUpRight,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { Post } from '../types';
 
@@ -99,6 +101,19 @@ const initialNewsArticles: NewsArticle[] = [
     likes: 38,
     comments: 11,
     imageUrl: 'https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=600&auto=format&fit=crop&q=60'
+  },
+  {
+    id: 'news_7',
+    category: 'Pasar Global',
+    title: 'BREAKING: Whale Dompet Milik Investor Muda Transaksi Lebih dari 113 MILIAR Per Hari!',
+    summary: 'Seorang investor muda Indonesia menjadi sorotan dunia kripto setelah dompet whale miliknya tercatat melakukan transaksi lebih dari $7 juta USD per hari, setara lebih dari Rp113 miliar.',
+    timestamp: 'Baru saja',
+    impact: 'Volatile',
+    source: 'CryptoBit News',
+    views: 1250,
+    likes: 85,
+    comments: 22,
+    imageUrl: 'https://raw.githubusercontent.com/AI-Studio-Build/08618c6e-1fcf-4837-9a40-82d5c32f80dc/main/src/assets/images/whale_investor_news.png'
   },
   {
     id: 'news_2',
@@ -201,13 +216,14 @@ const breakingNewsPool: Omit<NewsArticle, 'id'>[] = [
 ];
 
 export default function Feed() {
-  const { db, user, userProfile } = useFirebase();
+  const { db, user, userProfile, realTimeCryptos, deletePost } = useFirebase();
   const [activeMainTab, setActiveMainTab] = useState<'stream' | 'news'>('stream');
   
   // Custom states for Social Feed (Stream Web3)
   const [dbPosts, setDbPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [likedPosts, setLikedPosts] = useState<Record<string, { liked: boolean; offset: number }>>({});
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
 
   // Custom states for Global Markets & Political News
   const [newsList, setNewsList] = useState<NewsArticle[]>(initialNewsArticles);
@@ -216,15 +232,113 @@ export default function Feed() {
   const [likedNewsTracker, setLikedNewsTracker] = useState<Record<string, boolean>>({});
   const [alertNotification, setAlertNotification] = useState<string | null>(null);
 
-  // Real-time floating tickers simulation
-  const [tickers, setTickers] = useState<MarketTicker[]>([
-    { symbol: 'IHSG', name: 'Bursa Indonesia', price: 7284.50, change: 0.45, isPositive: true },
-    { symbol: 'USD/IDR', name: 'Rupiah', price: 16210.00, change: -0.15, isPositive: false, prefix: 'Rp' },
-    { symbol: 'S&P 500', name: 'Wall Street', price: 5278.35, change: 0.32, isPositive: true },
-    { symbol: 'BTC/USD', name: 'Bitcoin', price: 68450.00, change: 2.48, isPositive: true, prefix: '$' },
-    { symbol: 'Brent Oil', name: 'Minyak Brent', price: 82.95, change: 1.12, isPositive: true, prefix: '$' },
-    { symbol: 'Gold', name: 'Emas Mulia', price: 2342.10, change: -0.21, isPositive: false, prefix: '$' }
-  ]);
+  // Fetch real-time crypto news from CoinTelegraph
+  useEffect(() => {
+    let active = true;
+    const loadNews = async () => {
+      try {
+        const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss');
+        if (!res.ok) throw new Error('Network error');
+        const data = await res.json();
+        if (data && data.status === 'ok' && Array.isArray(data.items) && active) {
+          const parsed: NewsArticle[] = data.items.map((item: any, idx: number) => {
+            let imageUrl = item.thumbnail || (item.enclosure && item.enclosure.link) || '';
+            
+            if (!imageUrl && item.content) {
+              const imgMatch = item.content.match(/<img[^>]+src="([^">]+)"/);
+              if (imgMatch) imageUrl = imgMatch[1];
+            }
+            if (!imageUrl && item.description) {
+              const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
+              if (imgMatch) imageUrl = imgMatch[1];
+            }
+
+            if (!imageUrl) {
+              const fallbacks = [
+                'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=600&auto=format&fit=crop&q=60',
+                'https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=600&auto=format&fit=crop&q=60',
+                'https://images.unsplash.com/photo-1618042164219-62c820f10723?w=600&auto=format&fit=crop&q=60'
+              ];
+              imageUrl = fallbacks[idx % fallbacks.length];
+            }
+
+            let summaryText = item.description || item.content || '';
+            summaryText = summaryText.replace(/<[^>]*>/g, '').trim();
+            if (summaryText.length > 180) {
+              summaryText = summaryText.slice(0, 180) + '...';
+            }
+
+            let category: NewsArticle['category'] = 'Pasar Global';
+            const titleLower = item.title.toLowerCase();
+            if (titleLower.includes('regulation') || titleLower.includes('law') || titleLower.includes('sec') || titleLower.includes('govt') || titleLower.includes('regulasi') || titleLower.includes('kebijakan')) {
+              category = 'Kebijakan & Regulasi';
+            } else if (titleLower.includes('fed') || titleLower.includes('inflation') || titleLower.includes('economy') || titleLower.includes('suku bunga')) {
+              category = 'Ekonomi Makro';
+            } else if (titleLower.includes('geopolitic') || titleLower.includes('war') || titleLower.includes('election') || titleLower.includes('biden') || titleLower.includes('trump')) {
+              category = 'Politik & Geopolitik';
+            }
+
+            let impact: NewsArticle['impact'] = 'Neutral';
+            if (titleLower.includes('bull') || titleLower.includes('surge') || titleLower.includes('breakout') || titleLower.includes('rise') || titleLower.includes('gain') || titleLower.includes('up')) {
+              impact = 'Bullish';
+            } else if (titleLower.includes('drop') || titleLower.includes('plummet') || titleLower.includes('bear') || titleLower.includes('crash') || titleLower.includes('down') || titleLower.includes('loss')) {
+              impact = 'Bearish';
+            } else if (titleLower.includes('volat') || titleLower.includes('liquid') || titleLower.includes('whale') || titleLower.includes('mix')) {
+              impact = 'Volatile';
+            } else {
+              const impacts: NewsArticle['impact'][] = ['Bullish', 'Bearish', 'Neutral', 'Volatile'];
+              impact = impacts[Math.abs(item.title.length + idx) % impacts.length];
+            }
+
+            let relativeTime = 'Baru saja';
+            try {
+              const pubTime = new Date(item.pubDate).getTime();
+              const diffMs = Date.now() - pubTime;
+              const diffMins = Math.floor(diffMs / 60000);
+              if (diffMins < 60) {
+                relativeTime = `${Math.max(1, diffMins)} menit yang lalu`;
+              } else {
+                const diffHours = Math.floor(diffMins / 60);
+                if (diffHours < 24) {
+                  relativeTime = `${diffHours} jam yang lalu`;
+                } else {
+                  const diffDays = Math.floor(diffHours / 24);
+                  relativeTime = `${diffDays} hari yang lalu`;
+                }
+              }
+            } catch (e) {
+              // ignore
+            }
+
+            return {
+              id: item.guid || `news_${idx}_${Date.now()}`,
+              category,
+              title: item.title,
+              summary: summaryText,
+              timestamp: relativeTime,
+              impact,
+              source: item.author || 'CoinTelegraph',
+              views: Math.floor(Math.random() * 1500) + 200,
+              likes: Math.floor(Math.random() * 80) + 10,
+              comments: Math.floor(Math.random() * 30) + 5,
+              imageUrl,
+              link: item.link
+            };
+          });
+          setNewsList(parsed);
+        }
+      } catch (err) {
+        console.error('Error fetching cointelegraph news:', err);
+      }
+    };
+
+    loadNews();
+    const interval = setInterval(loadNews, 45000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Real-time updates for Firestore user posts ('Stream Web3')
   useEffect(() => {
@@ -258,31 +372,6 @@ export default function Feed() {
 
     return unsubscribe;
   }, [db]);
-
-  // Real-time ticking updates simulator (Market Tickers)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickers(prevTickers => 
-        prevTickers.map(t => {
-          // generate random drift around current price
-          const sign = Math.random() > 0.49 ? 1 : -1;
-          const percentageDrift = (Math.random() * 0.08) * sign; 
-          const originalPrice = t.price;
-          const nextPrice = Math.max(0.1, originalPrice * (1 + percentageDrift / 100));
-          const originalChange = t.change;
-          const nextChange = Math.max(-5, Math.min(5, originalChange + (percentageDrift * 0.8)));
-          return {
-            ...t,
-            price: Number(nextPrice.toFixed(2)),
-            change: Number(nextChange.toFixed(2)),
-            isPositive: nextChange >= 0
-          };
-        })
-      );
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Handler to like posts in Stream Web3
   const handleLikeClick = (postId: string) => {
@@ -374,7 +463,7 @@ export default function Feed() {
   });
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden mb-8 relative">
+    <div className="bg-[#121622] border border-slate-800 rounded-lg shadow-2xl overflow-hidden mb-8 relative">
       
       {/* Live Breaking News Notification Banner overlay */}
       {alertNotification && (
@@ -394,35 +483,40 @@ export default function Feed() {
       )}
 
       {/* Real-time Tickers Indicator Strip (Aesthetic design with live updates) */}
-      <div className="bg-slate-900 text-white py-2 px-3 flex items-center gap-4 text-xs overflow-x-auto no-scrollbar border-b border-gray-800 shrink-0 select-none">
+      <div className="bg-[#080b11] text-white py-2.5 px-3 flex items-center gap-4 text-xs overflow-x-auto no-scrollbar border-b border-slate-800/85 shrink-0 select-none">
         <div className="flex items-center gap-1.5 shrink-0 bg-[#00AE64]/10 border border-[#00AE64]/30 text-[#00AE64] text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
           <span className="w-1.5 h-1.5 bg-[#00AE64] rounded-full animate-ping shrink-0" />
           <span>Real-time Ticker</span>
         </div>
 
         <div className="flex items-center gap-6">
-          {tickers.map((t) => (
-            <div key={t.symbol} className="flex items-center gap-1.5 shrink-0 font-mono text-[11px] font-medium">
-              <span className="text-gray-400 font-sans font-bold">{t.symbol}</span>
-              <span className="text-gray-100 font-extrabold">{t.prefix || ''}{t.price.toLocaleString('id-ID')}</span>
-              <span className={`inline-flex items-center text-[10px] font-black ${t.isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {t.isPositive ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
-                {t.change > 0 ? `+${t.change}%` : `${t.change}%`}
-              </span>
-            </div>
-          ))}
+          {realTimeCryptos && realTimeCryptos.map((t) => {
+            const isPositive = (t.changePercent || 0) >= 0;
+            return (
+              <div key={t.symbol} className="flex items-center gap-1.5 shrink-0 font-mono text-[11px] font-medium">
+                <span className="text-slate-300 font-sans font-black">{t.symbol}/USDT</span>
+                <span className="text-slate-100 font-black">
+                  ${t.price >= 1 ? t.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : t.price.toFixed(4)}
+                </span>
+                <span className={`inline-flex items-center text-[10px] font-black ${isPositive ? 'text-[#00AE64]' : 'text-rose-500'}`}>
+                  {isPositive ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
+                  {isPositive ? '+' : ''}{(t.changePercent || 0).toFixed(2)}%
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Feed & News Tabs Selector Switcher */}
-      <div className="border-b border-gray-100 flex items-center justify-between px-4 h-14 bg-slate-50/50">
+      <div className="border-b border-slate-800 flex items-center justify-between px-4 h-14 bg-[#090b11]/80">
         <div className="flex h-full gap-1">
           <button 
             onClick={() => setActiveMainTab('stream')}
             className={`flex items-center gap-2 px-4 h-full text-xs sm:text-sm font-extrabold select-none transition-all border-b-2 cursor-pointer ${
               activeMainTab === 'stream'
                 ? 'text-[#00AE64] border-[#00AE64]'
-                : 'text-gray-400 hover:text-gray-800 border-transparent'
+                : 'text-slate-400 hover:text-white border-transparent'
             }`}
           >
              Stream Web3
@@ -433,28 +527,28 @@ export default function Feed() {
             className={`flex items-center gap-2.5 px-4 h-full text-xs sm:text-sm font-extrabold select-none transition-all border-b-2 cursor-pointer relative ${
               activeMainTab === 'news'
                 ? 'text-[#00AE64] border-[#00AE64]'
-                : 'text-gray-400 hover:text-gray-800 border-transparent'
+                : 'text-slate-400 hover:text-white border-transparent'
             }`}
           >
              <Newspaper className="w-4 h-4" />
              News Live
              <span className="absolute top-2 right-1.5 flex h-2 w-2">
-               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00AE64]/70 opacity-75"></span>
+               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00AE64]"></span>
              </span>
           </button>
 
           <button 
             type="button"
-            className="flex items-center gap-2 px-4 h-full text-gray-400 text-xs sm:text-sm font-medium hover:text-gray-900 transition-colors select-none opacity-60 cursor-not-allowed"
+            className="flex items-center gap-2 px-4 h-full text-slate-500 text-xs sm:text-sm font-medium hover:text-white transition-colors select-none opacity-60 cursor-not-allowed"
             title="Segera Hadir"
           >
-             Research <span className="bg-slate-200 text-gray-600 text-[10px] px-1.5 py-0.5 rounded-full font-black">Pro</span>
+             Research <span className="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full font-black">Pro</span>
           </button>
         </div>
         
-        <div className="flex items-center gap-2 text-gray-400">
-          <Search className="w-4 h-4 cursor-pointer hover:text-gray-700" />
+        <div className="flex items-center gap-2 text-slate-400">
+          <Search className="w-4 h-4 cursor-pointer hover:text-white" />
         </div>
       </div>
 
@@ -462,36 +556,36 @@ export default function Feed() {
       {activeMainTab === 'stream' && (
         <>
           {/* Stream Filter Chips */}
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
+          <div className="p-4 border-b border-slate-800/85 flex items-center justify-between bg-[#121622]">
             <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
               {['Terkini', 'Ide Koin', 'Prediksi Harga', 'Poling Pasar', 'Akumulasi Whale'].map((tag, idx) => (
                 <button 
                   key={tag} 
                   className={`px-3 py-1 rounded-sm text-[11px] font-bold border whitespace-nowrap select-none transition-all cursor-pointer ${
                     idx === 0 
-                      ? 'bg-emerald-50 text-[#00AE64] border-emerald-200' 
-                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-100'
+                      ? 'bg-emerald-950/40 text-[#00AE64] border-emerald-500/20' 
+                      : 'bg-[#181d2c] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
                   }`}
                 >
                   {tag}
                 </button>
               ))}
             </div>
-            <button className="hidden sm:flex items-center gap-1 text-gray-500 text-xs font-bold hover:text-gray-900">
+            <button className="hidden sm:flex items-center gap-1 text-slate-400 text-xs font-bold hover:text-white">
               Mengikuti <ChevronDown className="w-3 h-3" />
             </button>
           </div>
 
           {/* Posts List rendering */}
-          <div className="divide-y divide-gray-100 bg-white">
+          <div className="divide-y divide-slate-800 bg-[#121622]">
             {isLoading ? (
               <div className="p-10 flex flex-col items-center justify-center gap-3">
                 <Loader2 className="w-6 h-6 text-[#00AE64] animate-spin" />
-                <p className="text-xs text-gray-400 font-extrabold uppercase tracking-wider">Menghubungkan ke Web3 Ledger Feed...</p>
+                <p className="text-xs text-slate-400 font-extrabold uppercase tracking-wider">Menghubungkan ke Web3 Ledger Feed...</p>
               </div>
             ) : combinedPosts.length === 0 ? (
               <div className="p-10 text-center">
-                <p className="text-gray-500 text-sm font-medium">Belum ada ide yang diposting. Jadilah inisiator pertama!</p>
+                <p className="text-slate-555 text-sm font-medium">Belum ada ide yang diposting. Jadilah inisiator pertama!</p>
               </div>
             ) : (
               combinedPosts.map((post) => {
@@ -504,49 +598,59 @@ export default function Feed() {
                 const effectiveLikes = Math.max(0, post.likes + likeState.offset);
 
                 return (
-                  <div key={post.id} className="p-4 hover:bg-gray-50/50 transition-colors animate-fade-in">
+                  <div key={post.id} className="p-4 hover:bg-[#181d2c]/40 transition-colors animate-fade-in">
                     <div className="flex gap-3">
                       <div className="relative shrink-0 select-none">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-150 bg-gray-50 shadow-inner">
-                          <img src={verifiedAvatar} alt={verifiedName} referrerPolicy="no-referrer" />
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-800 bg-[#090b11] shadow-inner flex items-center justify-center">
+                          <img src={verifiedAvatar} alt={verifiedName} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         </div>
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5 truncate">
-                            <span className="font-extrabold text-sm text-gray-900 tracking-tight">{verifiedName}</span>
+                            <span className="font-extrabold text-sm text-slate-100 tracking-tight">{verifiedName}</span>
                             {isVerified && (
                               <span title="Akun Terverifikasi (Pro KYC)">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500 text-white shrink-0" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-[#00AE64]/20 text-emerald-500 shrink-0" />
                               </span>
                             )}
-                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide ml-1">· {post.timestamp}</span>
+                            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wide ml-1">· {post.timestamp}</span>
                           </div>
-                          <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {isCurrentUser && (
+                              <button onClick={() => deletePost(post.id)} className="text-slate-500 hover:text-rose-500 transition-colors" title="Hapus Postingan">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button className="text-slate-500 hover:text-white transition-colors">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
-                        <p className="text-sm text-gray-800 leading-relaxed font-medium mb-3 whitespace-pre-line">{post.content}</p>
+                        <p className="text-sm text-slate-300 leading-relaxed font-semibold mb-3 whitespace-pre-line">{post.content}</p>
                         
                         {post.imageUrl && (
-                          <div className="rounded-xl overflow-hidden border border-gray-150 bg-gray-100 max-h-[360px] mb-4 shadow-inner">
+                          <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#0c101b] mb-4 shadow-inner flex justify-center items-center">
                             <img 
                               src={post.imageUrl} 
                               alt="Gambaran Postingan Web3" 
-                              className="w-full h-full object-cover max-h-[360px] pointer-events-none select-none"
+                              className="max-w-full h-auto max-h-[500px] object-contain rounded-xl pointer-events-none select-none transition-transform duration-500 hover:scale-[1.005]"
                               referrerPolicy="no-referrer" 
                             />
                           </div>
                         )}
                         
-                        <div className="flex items-center gap-8 text-gray-400">
-                          <button className="flex items-center gap-1.5 hover:text-[#00AE64] transition-colors group cursor-pointer">
+                        <div className="flex items-center gap-8 text-slate-500">
+                          <button 
+                            onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                            className={`flex items-center gap-1.5 transition-colors group cursor-pointer ${showComments[post.id] ? 'text-[#00AE64] font-extrabold' : 'hover:text-[#00AE64]'}`}
+                          >
                             <MessageSquare className="w-4 h-4 group-hover:scale-110 transition-transform" />
                             <span className="text-[11px] font-bold">{post.comments}</span>
                           </button>
-                          <button className="flex items-center gap-1.5 hover:text-blue-500 transition-colors group cursor-pointer">
+                          <button className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors group cursor-pointer">
                             <Repeat2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
                             <span className="text-[11px] font-bold">{post.shares}</span>
                           </button>
@@ -559,10 +663,17 @@ export default function Feed() {
                             <Heart className={`w-4 h-4 transition-all ${likeState.liked ? 'fill-rose-500 text-rose-500 scale-110' : 'group-hover:scale-120'}`} />
                             <span className="text-[11px] font-bold">{effectiveLikes}</span>
                           </button>
-                          <button className="flex items-center gap-1.5 hover:text-blue-600 transition-colors group cursor-pointer">
+                          <button className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors group cursor-pointer">
                             <Share2 className="w-4 h-4 group-hover:-rotate-12 transition-transform" />
                           </button>
                         </div>
+                        {showComments[post.id] && (
+                          <PostComments 
+                            postId={post.id} 
+                            postAuthor={post.author} 
+                            postContent={post.content} 
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -575,24 +686,24 @@ export default function Feed() {
 
       {/* --- RENDER TAB: LIVE NEWS (Global Market & Political News Feed) --- */}
       {activeMainTab === 'news' && (
-        <div className="bg-white min-h-[400px]">
+        <div className="bg-[#121622] min-h-[400px]">
           
           {/* Header Action Row */}
-          <div className="p-4 bg-slate-50 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 bg-[#090b11] border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <h3 className="text-sm font-black text-slate-100 tracking-tight flex items-center gap-2">
                 <Flame className="w-4 h-4 text-orange-500 shrink-0 fill-orange-500" />
                 Ledger News: Global & Geopolitik
               </h3>
-              <p className="text-[11px] text-gray-500 font-semibold leading-none mt-1">
-                Laporan geopolitik makroekonomi teraktual yang disuplai secara rill-time oleh satelit anti-sensor.
+              <p className="text-[11px] text-slate-400 font-semibold leading-none mt-1">
+                Laporan geopolitik makroekonomi teraktual yang disuplai secara real-time oleh satelit anti-sensor.
               </p>
             </div>
 
             <div className="flex gap-2">
               <button 
                 onClick={handleInjectBreakingNews}
-                className="bg-gray-900 hover:bg-gray-800 text-white font-extrabold text-[10px] uppercase.tracking-wider px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer flex-1 justify-center"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-100 font-extrabold text-[10px] uppercase tracking-wider px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer flex-1 justify-center border border-slate-700"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 Simulasi Berita Live
@@ -604,7 +715,7 @@ export default function Feed() {
                   setNewsSearchQuery('');
                   setNewsFilter('Semua');
                 }}
-                className="border border-gray-250 bg-white hover:bg-gray-50 text-gray-700 font-extrabold text-[10px] uppercase px-3 py-2 rounded-lg transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                className="border border-slate-800 bg-[#121622] hover:bg-[#181d2c] text-slate-300 font-extrabold text-[10px] uppercase px-3 py-2 rounded-lg transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
                 title="Reset/Refresh Berita"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -614,21 +725,21 @@ export default function Feed() {
           </div>
 
           {/* Search bar inside News tab */}
-          <div className="p-3 border-b border-gray-150 bg-white flex items-center gap-2.5">
+          <div className="p-3 border-b border-slate-800/80 bg-[#121622] flex items-center gap-2.5">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
+              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500" />
               <input 
                 type="text" 
                 value={newsSearchQuery} 
                 onChange={(e) => setNewsSearchQuery(e.target.value)}
                 placeholder="Cari berita global, pemilu, saham, the fed, geopolitik..."
-                className="w-full bg-slate-50/80 border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-xs font-medium text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64]/10 focus:bg-white transition-all"
+                className="w-full bg-[#0c0f17] border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs font-medium text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64]/10 focus:bg-[#080d15] transition-all"
               />
             </div>
           </div>
 
           {/* Tag Filter selection for News */}
-          <div className="p-3 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-white">
+          <div className="p-3 border-b border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-[#121622]">
             {(['Semua', 'Pasar Global', 'Politik', 'Regulasi', 'Makro'] as const).map((tag) => (
               <button 
                 key={tag}
@@ -636,7 +747,7 @@ export default function Feed() {
                 className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border whitespace-nowrap transition-all cursor-pointer ${
                   newsFilter === tag 
                     ? 'bg-[#00AE64] border-[#00AE64] text-white shadow-sm' 
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-800'
+                    : 'bg-[#181d2c] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
                 }`}
               >
                 {tag}
@@ -645,12 +756,12 @@ export default function Feed() {
           </div>
 
           {/* News articles listing wrapper */}
-          <div className="divide-y divide-gray-150 bg-white">
+          <div className="divide-y divide-slate-800 bg-[#121622]">
             {filteredNews.length === 0 ? (
               <div className="p-12 text-center flex flex-col items-center justify-center gap-2.5">
                 <AlertTriangle className="w-8 h-8 text-amber-500" />
-                <p className="text-gray-800 text-sm font-bold">Tidak ada berita yang cocok!</p>
-                <p className="text-xs text-gray-400 font-semibold max-w-sm">
+                <p className="text-slate-200 text-sm font-bold">Tidak ada berita yang cocok!</p>
+                <p className="text-xs text-slate-400 font-semibold max-w-sm">
                   Coba ubah kata kunci pencarian Anda atau kembalikan setelan filter kategori ke kategori "Semua".
                 </p>
                 <button 
@@ -665,11 +776,11 @@ export default function Feed() {
                 const liked = !!likedNewsTracker[article.id];
                 
                 return (
-                  <div key={article.id} className="p-5 hover:bg-slate-50/50 transition-colors animate-fade-in flex flex-col md:flex-row gap-5">
+                  <div key={article.id} className="p-5 hover:bg-[#181d2c]/40 transition-colors animate-fade-in flex flex-col md:flex-row gap-5">
                     
                     {/* Embedded Illustration if available */}
                     {article.imageUrl && (
-                      <div className="w-full md:w-[150px] h-[100px] rounded-lg overflow-hidden border border-gray-150 bg-gray-50 shrink-0 shadow-inner">
+                      <div className="w-full md:w-[150px] h-[100px] rounded-lg overflow-hidden border border-slate-800 bg-[#0c101b] shrink-0 shadow-inner">
                         <img 
                           src={article.imageUrl} 
                           alt="Ilustrasi Berita" 
@@ -683,44 +794,44 @@ export default function Feed() {
                       <div>
                         {/* Tags and timestamp indicators */}
                         <div className="flex items-center gap-2 mb-2 flex-wrap text-[9px] font-black uppercase tracking-wider">
-                          <span className="text-gray-400 bg-gray-100 rounded px-2 py-0.5 leading-none">
+                          <span className="text-slate-300 bg-slate-800 rounded px-2 py-0.5 leading-none">
                             {article.source}
                           </span>
                           <span className={`px-2 py-0.5 rounded leading-none ${
-                            article.category === 'Pasar Global' ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' :
-                            article.category === 'Politik & Geopolitik' ? 'text-orange-600 bg-orange-50 border border-orange-100' :
-                            article.category === 'Kebijakan & Regulasi' ? 'text-rose-600 bg-rose-50 border border-rose-100' :
-                            'text-emerald-600 bg-emerald-50 border border-emerald-100'
+                            article.category === 'Pasar Global' ? 'text-indigo-400 bg-indigo-950/40 border border-indigo-505/20' :
+                            article.category === 'Politik & Geopolitik' ? 'text-orange-400 bg-orange-950/40 border border-orange-505/20' :
+                            article.category === 'Kebijakan & Regulasi' ? 'text-rose-400 bg-rose-950/40 border border-rose-505/20' :
+                            'text-[#00AE64] bg-emerald-950/40 border border-emerald-505/20'
                           }`}>
                             {article.category}
                           </span>
                           
                           {/* Market Volatility/Impact Signal Tag */}
                           <span className={`px-2 py-0.5 rounded leading-none font-bold ${
-                            article.impact === 'Bullish' ? 'text-emerald-700 bg-emerald-50 border border-emerald-100' :
-                            article.impact === 'Bearish' ? 'text-rose-700 bg-rose-50 border border-rose-100' :
-                            article.impact === 'Volatile' ? 'text-[#FF8A00] bg-amber-50 border border-amber-100 animate-pulse' :
-                            'text-gray-600 bg-gray-50 border border-gray-150'
+                            article.impact === 'Bullish' ? 'text-[#00AE64] bg-emerald-950/40 border border-emerald-505/20' :
+                            article.impact === 'Bearish' ? 'text-rose-400 bg-rose-950/40 border border-rose-505/20' :
+                            article.impact === 'Volatile' ? 'text-[#FF8A00] bg-amber-950/45 border border-amber-500/20 animate-pulse' :
+                            'text-slate-400 bg-slate-900 border border-slate-800'
                           }`}>
                             ⚡ Impact: {article.impact}
                           </span>
 
-                          <span className="text-gray-400 text-[10px] ml-auto font-medium">
+                          <span className="text-slate-550 text-[10px] ml-auto font-medium">
                             {article.timestamp}
                           </span>
                         </div>
 
                         {/* Title & summary */}
-                        <h4 className="text-sm font-black text-gray-950 mb-2 leading-snug tracking-tight hover:text-[#00AE64] cursor-pointer transition-colors">
+                        <h4 className="text-sm font-black text-slate-100 mb-2 leading-snug tracking-tight hover:text-[#00AE64] cursor-pointer transition-colors">
                           {article.title}
                         </h4>
-                        <p className="text-xs text-gray-600 leading-relaxed font-semibold mb-3">
+                        <p className="text-xs text-slate-400 leading-relaxed font-semibold mb-3">
                           {article.summary}
                         </p>
                       </div>
 
                       {/* Interaction Footer metadata */}
-                      <div className="flex items-center justify-between text-gray-400 text-[10px] pt-1.5 border-t border-dashed border-gray-100">
+                      <div className="flex items-center justify-between text-slate-500 text-[10px] pt-1.5 border-t border-dashed border-slate-800/80">
                         <div className="flex items-center gap-4">
                           <button 
                             onClick={() => handleLikeNews(article.id)}
@@ -735,7 +846,7 @@ export default function Feed() {
                             <span className="font-bold">{article.comments}</span>
                           </span>
 
-                          <span className="hidden sm:inline-flex items-center gap-1 text-gray-400/80">
+                          <span className="hidden sm:inline-flex items-center gap-1 text-slate-500/80">
                             <Eye className="w-3.5 h-3.5" />
                             <span className="font-semibold">{article.views.toLocaleString('id-ID')} views</span>
                           </span>
@@ -745,7 +856,7 @@ export default function Feed() {
                           <button 
                             type="button"
                             onClick={() => alert(`Sistem: Berita "${article.title}" berhasil disalin ke papan klip!`)}
-                            className="text-[10px] font-black uppercase text-gray-400 hover:text-gray-700 tracking-wider flex items-center gap-1 cursor-pointer"
+                            className="text-[10px] font-black uppercase text-slate-500 hover:text-white tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
                           >
                             <Share2 className="w-3 h-3" /> Bagikan
                           </button>
@@ -755,9 +866,9 @@ export default function Feed() {
                               e.preventDefault();
                               alert(`Membuka Dokumen Referensi Berita Asli dari pihak ${article.source} secara aman...`);
                             }}
-                            className="bg-slate-100 hover:bg-slate-200 text-gray-700 px-2.5 py-1 rounded-md transition-colors flex items-center gap-0.5 font-bold"
+                            className="bg-[#121622] hover:bg-[#181d2c] text-slate-300 border border-slate-800 px-2.5 py-1 rounded-md transition-colors flex items-center gap-0.5 font-bold"
                           >
-                            Original <ArrowUpRight className="w-2.5 h-2.5" />
+                            Original <ArrowUpRight className="w-2.5 h-2.5 text-[#00AE64]" />
                           </a>
                         </div>
                       </div>

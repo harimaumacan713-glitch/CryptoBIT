@@ -6,16 +6,20 @@
 import React, { useState } from 'react';
 import { useFirebase } from './FirebaseProvider';
 import { IPOCoin } from '../types';
-import { Zap, Coins, Globe, Twitter, Loader2, Sparkles, AlertCircle, ArrowUpRight, TrendingUp, Layers, Flame, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Zap, Coins, Globe, Twitter, Loader2, Sparkles, AlertCircle, ArrowUpRight, TrendingUp, Layers, Flame, Clock, CheckCircle2, XCircle, Rocket, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function IPOCenter() {
-  const { coins, placeOrder, user, userProfile, login } = useFirebase();
+  const { coins, placeOrder, user, userProfile, login, instantListCoin } = useFirebase();
   const [filter, setFilter] = useState<'All' | 'Live' | 'Upcoming' | 'Listed' | 'Failed'>('All');
   const [selectedCoin, setSelectedCoin] = useState<IPOCoin | null>(null);
   const [amount, setAmount] = useState<string>('');
   const [isOrdering, setIsOrdering] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [confirmingCoinId, setConfirmingCoinId] = useState<string | null>(null);
+  const [loadingCoinId, setLoadingCoinId] = useState<string | null>(null);
+  const [errorCoinId, setErrorCoinId] = useState<{[key: string]: string}>({});
 
   // Filter IPO Coins
   const filteredCoins = coins.filter(coin => {
@@ -246,18 +250,90 @@ export default function IPOCenter() {
                       )}
                     </div>
 
-                    <button
-                      id={`btn-order-ipo-${coin.id}`}
-                      disabled={isListed || coin.status === 'Failed'}
-                      onClick={() => setSelectedCoin(coin)}
-                      className={`text-xs font-black px-4 py-2 rounded-sm transition-all ${
-                        (isListed || coin.status === 'Failed')
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200/50' 
-                          : 'bg-[#00AE64]/10 text-[#00AE64] hover:bg-[#00AE64] hover:text-white border border-[#00AE64]/20 hover:border-transparent cursor-pointer'
-                      }`}
-                    >
-                      {isListed ? 'Listed' : coin.status === 'Failed' ? 'Refunded' : isUpcoming ? 'Pesankan' : 'Beli IPO'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {user && user.uid === coin.creatorId && coin.status !== 'Listed' && coin.status !== 'Failed' && (
+                        <button 
+                          onClick={() => deleteCoin(coin.id)}
+                          className="p-2 rounded-sm bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors"
+                          title="Hapus Koin"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {user && user.uid === coin.creatorId && coin.status !== 'Listed' && coin.status !== 'Failed' && (
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <button
+                            id={`btn-instant-list-${coin.id}`}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (loadingCoinId === coin.id) return;
+                              
+                              if (confirmingCoinId === coin.id) {
+                                try {
+                                  setLoadingCoinId(coin.id);
+                                  setErrorCoinId(prev => ({ ...prev, [coin.id]: '' }));
+                                  await instantListCoin(coin.id);
+                                  setConfirmingCoinId(null);
+                                  setSuccessToast(`Koin ${coin.name} (${coin.symbol}) berhasil diluncurkan ke bursa perdagangan secara instant!`);
+                                  setTimeout(() => setSuccessToast(null), 4000);
+                                } catch (err: any) {
+                                  setErrorCoinId(prev => ({ ...prev, [coin.id]: err.message || 'Gagal meluncurkan koin' }));
+                                  setConfirmingCoinId(null);
+                                } finally {
+                                  setLoadingCoinId(null);
+                                }
+                              } else {
+                                setConfirmingCoinId(coin.id);
+                                setTimeout(() => {
+                                  setConfirmingCoinId(curr => curr === coin.id ? null : curr);
+                                }, 4000);
+                              }
+                            }}
+                            disabled={loadingCoinId === coin.id}
+                            className={`text-[10px] font-black px-2.5 py-1.5 rounded-sm flex items-center gap-1 cursor-pointer tracking-wider transition-all select-none ${
+                              loadingCoinId === coin.id
+                                ? 'bg-gray-400 text-white cursor-wait'
+                                : confirmingCoinId === coin.id
+                                ? 'bg-amber-500 hover:bg-amber-600 font-extrabold text-white animate-pulse'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                          >
+                            {loadingCoinId === coin.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin text-white" /> PROSES...
+                              </>
+                            ) : confirmingCoinId === coin.id ? (
+                              <>
+                                <Rocket className="w-3 h-3 animate-bounce text-white" /> KLIK LAGI UNTUK LUNCURKAN
+                              </>
+                            ) : (
+                              <>
+                                <Rocket className="w-3 h-3 text-white" /> LISTING INSTAN
+                              </>
+                            )}
+                          </button>
+                          
+                          {errorCoinId[coin.id] && (
+                            <span className="text-[9px] font-bold text-rose-500 text-right mt-0.5 block max-w-[150px] truncate">
+                              {errorCoinId[coin.id]}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        id={`btn-order-ipo-${coin.id}`}
+                        disabled={isListed || coin.status === 'Failed'}
+                        onClick={() => setSelectedCoin(coin)}
+                        className={`text-xs font-black px-4 py-2 rounded-sm transition-all ${
+                          (isListed || coin.status === 'Failed')
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200/50' 
+                            : 'bg-[#00AE64]/10 text-[#00AE64] hover:bg-[#00AE64] hover:text-white border border-[#00AE64]/20 hover:border-transparent cursor-pointer'
+                        }`}
+                      >
+                        {isListed ? 'Listed' : coin.status === 'Failed' ? 'Refunded' : isUpcoming ? 'Pesankan' : 'Beli IPO'}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -398,6 +474,25 @@ export default function IPOCenter() {
               )}
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      {/* Floating Success Toast */}
+      <AnimatePresence>
+        {successToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 min-w-[320px] max-w-[95%] bg-neutral-900 border border-neutral-800 text-white px-5 py-4 rounded-lg shadow-2xl z-50 flex items-center gap-3.5"
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <Rocket className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#00AE64]">LAUNCHPAD SYSTEM</p>
+              <p className="text-xs text-neutral-300 font-semibold mt-0.5 leading-normal">{successToast}</p>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -7,7 +7,9 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, User, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc, getDocs, where } from 'firebase/firestore';
-import { IPOCoin, IPOOrder, UserProfile } from '../types';
+import { CryptoData, IPOCoin, IPOOrder, UserProfile, AppNotification, ChatMessage } from '../types';
+import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
+import { WATCHLIST_COINS } from '../utils/constants';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAm1t-K3LnK41NqaU1GF_ZfnwpYkyOSTbU",
@@ -45,6 +47,7 @@ interface FirebaseContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   createCoin: (coinData: Partial<IPOCoin>) => Promise<void>;
+  instantListCoin: (coinId: string) => Promise<void>;
   placeOrder: (order: Partial<IPOOrder>) => Promise<void>;
   updateBalance: (amount: number) => Promise<void>;
   transferBalance: (recipientEmail: string, amount: number) => Promise<void>;
@@ -52,6 +55,16 @@ interface FirebaseContextType {
   tradeCrypto: (action: 'buy' | 'sell', symbol: string, amount: number, price: number) => Promise<void>;
   clearAllUserCoins: () => Promise<void>;
   verifyUser: (userId: string, isVerified: boolean) => Promise<void>;
+  deleteCoin: (coinId: string) => Promise<void>;
+  deletePost: (postId: string) => Promise<void>;
+  submitVerificationRequest: (fullData: any) => Promise<void>;
+  realTimeCryptos: CryptoData[];
+  notifications: AppNotification[];
+  chats: ChatMessage[];
+  addComment: (postId: string, postAuthorUid: string, postContent: string, content: string) => Promise<void>;
+  sendChatMessage: (recipientUid: string, recipientName: string, recipientAvatar: string, content: string) => Promise<void>;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
 }
 
 const app = initializeApp(firebaseConfig);
@@ -68,6 +81,45 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [coins, setCoins] = useState<IPOCoin[]>([]);
   const [orders, setOrders] = useState<IPOOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [chats, setChats] = useState<ChatMessage[]>([]);
+  const realTimeCryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+    const q = query(collection(db, 'notifications'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as AppNotification))
+        .filter(n => n.recipientUid === user.uid)
+        .sort((a, b) => b.createdAt - a.createdAt);
+      setNotifications(list);
+    }, (error) => {
+      console.error("Notifications listener error", error);
+    });
+    return unsubscribe;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setChats([]);
+      return;
+    }
+    const q = query(collection(db, 'messages'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage))
+        .filter(m => m.senderUid === user.uid || m.recipientUid === user.uid)
+        .sort((a, b) => a.createdAt - b.createdAt); // newest at bottom for chat
+      setChats(list);
+    }, (error) => {
+      console.error("Chats/messages listener error", error);
+    });
+    return unsubscribe;
+  }, [user]);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
@@ -249,12 +301,10 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const createCoin = async (coinData: Partial<IPOCoin>) => {
     if (!user) throw new Error('Must be logged in');
     if (!userProfile) throw new Error('User profile not loaded');
-    if (!userProfile.isVerified) throw new Error('Akun Anda harus terverifikasi KYC terlebih dahulu!');
     
     const reqLiquidity = Number(coinData.liquidity) || 1000000;
-    if (userProfile.balance < reqLiquidity) {
-      throw new Error(`Saldo tidak mencukupi! Saldo Anda saat ini $${userProfile.balance.toLocaleString()}. Anda memerlukan deposit likuiditas virtual minimum $1,000,000 USD untuk meluncurkan proyek.`);
-    }
+    // Deduct only up to available balance, removing financial blocker
+    const deductAmount = Math.min(userProfile.balance, reqLiquidity);
 
     const nowISO = new Date().toISOString();
     let endISO = coinData.listingDate;
@@ -269,16 +319,24 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const endTimeStamp = new Date(endISO).getTime();
     const duration = Math.max(0, endTimeStamp - startTimeStamp);
 
-    // Deduct $1,000,000 USD virtual liquidity
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      balance: userProfile.balance - reqLiquidity
-    });
+    // Deduct what is available
+    if (deductAmount > 0) {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        balance: userProfile.balance - deductAmount
+      });
+    }
 
-    const isHotValue = coinData.totalSupply > 50000000;
+    const isHotValue = (coinData.totalSupply || 10000000) > 50000000;
+    const initialStatus = coinData.status || 'Upcoming';
+    const isDirectListed = initialStatus === 'Listed';
+
+    const usdPoolVal = reqLiquidity;
+    const tokenPoolVal = reqLiquidity / (coinData.initialPrice || 0.1);
 
     const docRef = await addDoc(collection(db, 'coins'), {
       ...coinData,
+      status: initialStatus,
       listingDate: endISO,
       listingTime: endISO,
       ipoStartTime: nowISO,
@@ -290,12 +348,39 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       isVerified: true,
       isHot: isHotValue,
       creatorWallet: userProfile.walletAddress || '0xUNKNOWN',
-      usdPool: reqLiquidity, // initial pool USD equals user liquidity deposit
-      tokenPool: reqLiquidity / (coinData.initialPrice || 0.1),
+      usdPool: usdPoolVal, // initial pool USD
+      tokenPool: tokenPoolVal, // initial token pool
+      currentPrice: isDirectListed ? (coinData.initialPrice || 0.1) : null,
+      sparkline: isDirectListed ? [{ value: coinData.initialPrice || 0.1 }] : [{ value: coinData.initialPrice || 0.1 }],
       timestamp: serverTimestamp()
     });
 
-    await logLiveTransaction('DEPOSIT', coinData.symbol || 'UNK', reqLiquidity, 1, reqLiquidity, userProfile.walletAddress || '0xUNKNOWN');
+    if (deductAmount > 0) {
+      await logLiveTransaction('DEPOSIT', coinData.symbol || 'UNK', deductAmount, 1, deductAmount, userProfile.walletAddress || '0xUNKNOWN');
+    }
+  };
+
+  const instantListCoin = async (coinId: string) => {
+    if (!user) throw new Error('Must be logged in');
+    const coinRef = doc(db, 'coins', coinId);
+    const coinSnap = await getDoc(coinRef);
+    if (!coinSnap.exists()) throw new Error('Coin not found');
+    const coinData = coinSnap.data();
+    
+    const fundRaised = (coinData.soldCount || 0) * (coinData.initialPrice || 0.1);
+    const initialUsdPool = (coinData.liquidity || 1000000) + fundRaised;
+    const initialTokenPool = initialUsdPool / (coinData.initialPrice || 0.1);
+
+    await updateDoc(coinRef, {
+      status: 'Listed',
+      usdPool: initialUsdPool,
+      tokenPool: initialTokenPool,
+      liquidity: initialUsdPool,
+      currentPrice: coinData.initialPrice || 0.1,
+      sparkline: [{ value: coinData.initialPrice || 0.1 }]
+    });
+
+    await logLiveTransaction('DEPOSIT', coinData.symbol || 'UNK', initialUsdPool, 1, initialUsdPool, userProfile?.walletAddress || '0xUNKNOWN');
   };
 
   const logLiveTransaction = async (type: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW' | 'TRANSFER', coin: string, amount: number, price: number | undefined, usdValue: number, wallet: string) => {
@@ -681,10 +766,162 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addComment = async (postId: string, postAuthorUid: string, postContent: string, content: string) => {
+    if (!user || !userProfile) throw new Error("Unauthorized: Silakan login terlebih dahulu");
+    if (!content.trim()) throw new Error("Komentar tidak boleh kosong.");
+
+    try {
+      const commentData = {
+        postId,
+        author: {
+          uid: user.uid,
+          name: userProfile.username || 'User',
+          avatar: userProfile.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=default",
+          isVerified: userProfile.isVerified || false
+        },
+        content: content.trim(),
+        createdAt: Date.now()
+      };
+      await addDoc(collection(db, 'comments'), commentData);
+
+      const postRef = doc(db, 'posts', postId);
+      const postDoc = await getDoc(postRef);
+      if (postDoc.exists()) {
+        const currentComments = postDoc.data().comments || 0;
+        await updateDoc(postRef, {
+          comments: currentComments + 1
+        });
+      }
+
+      if (postAuthorUid && postAuthorUid !== user.uid) {
+        const notifData = {
+          recipientUid: postAuthorUid,
+          sender: {
+            uid: user.uid,
+            name: userProfile.username || 'User',
+            avatar: userProfile.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=default"
+          },
+          type: 'comment',
+          message: `mengomentari postingan Anda: "${content.trim()}"`,
+          postId,
+          isRead: false,
+          createdAt: Date.now()
+        };
+        await addDoc(collection(db, 'notifications'), notifData);
+
+        const chatData = {
+          senderUid: user.uid,
+          senderName: userProfile.username || 'User',
+          senderAvatar: userProfile.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=default",
+          recipientUid: postAuthorUid,
+          recipientName: postDoc.exists() ? (postDoc.data().author?.name || 'User') : 'User',
+          recipientAvatar: postDoc.exists() ? (postDoc.data().author?.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=default") : "https://api.dicebear.com/7.x/pixel-art/svg?seed=default",
+          content: `[Komentar Post] Halo! Saya baru saja memberikan komentar di postingan Anda: "${content.trim()}"`,
+          createdAt: Date.now(),
+          isRead: false
+        };
+        await addDoc(collection(db, 'messages'), chatData);
+      }
+    } catch (err: any) {
+      console.error("Gagal menambahkan komentar", err);
+      throw err;
+    }
+  };
+
+  const sendChatMessage = async (recipientUid: string, recipientName: string, recipientAvatar: string, content: string) => {
+    if (!user || !userProfile) throw new Error("Unauthorized: Silakan login terlebih dahulu");
+    if (!content.trim()) throw new Error("Pesan tidak boleh kosong.");
+
+    try {
+      const msgData = {
+        senderUid: user.uid,
+        senderName: userProfile.username || 'User',
+        senderAvatar: userProfile.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=default",
+        recipientUid,
+        recipientName,
+        recipientAvatar,
+        content: content.trim(),
+        createdAt: Date.now(),
+        isRead: false
+      };
+      await addDoc(collection(db, 'messages'), msgData);
+
+      const notifData = {
+        recipientUid,
+        sender: {
+          uid: user.uid,
+          name: userProfile.username || 'User',
+          avatar: userProfile.avatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=default"
+        },
+        type: 'message',
+        message: `mengirim pesan baru: "${content.trim().slice(0, 30)}${content.trim().length > 30 ? '...' : ''}"`,
+        isRead: false,
+        createdAt: Date.now()
+      };
+      await addDoc(collection(db, 'notifications'), notifData);
+    } catch (err: any) {
+      console.error("Gagal mengirim pesan chat", err);
+      throw err;
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const notifRef = doc(db, 'notifications', notificationId);
+      await updateDoc(notifRef, { isRead: true });
+    } catch (err) {
+      console.error("Gagal menandai notifikasi telah dibaca", err);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    if (!user) return;
+    try {
+      const q = query(collection(db, 'notifications'), where('recipientUid', '==', user.uid), where('isRead', '==', false));
+      const snap = await getDocs(q);
+      const batchPromises = snap.docs.map(docSnap => updateDoc(docSnap.ref, { isRead: true }));
+      await Promise.all(batchPromises);
+    } catch (err) {
+      console.error("Gagal menandai semua notifikasi", err);
+    }
+  };
+
+  const deleteCoin = async (coinId: string) => {
+    if (!user) throw new Error('Unauthorized');
+    const coinRef = doc(db, 'coins', coinId);
+    const coinSnap = await getDoc(coinRef);
+    if (!coinSnap.exists() || coinSnap.data().creatorId !== user.uid) throw new Error('Unauthorized or coin not found');
+    await deleteDoc(coinRef);
+  };
+
+  const deletePost = async (postId: string) => {
+    if (!user) throw new Error('Unauthorized');
+    const postRef = doc(db, 'posts', postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists() || postSnap.data().author?.uid !== user.uid) throw new Error('Unauthorized or post not found');
+    await deleteDoc(postRef);
+  };
+
+  const submitVerificationRequest = async (fullData: any) => {
+    if (!user) throw new Error('Unauthorized');
+    await addDoc(collection(db, 'verification_requests'), {
+      ...fullData,
+      userId: user.uid,
+      status: 'pending',
+      createdAt: Date.now()
+    });
+    await updateDoc(doc(db, 'users', user.uid), {
+      verificationStatus: 'pending'
+    });
+  };
+
   return (
     <FirebaseContext.Provider value={{
       user, userProfile, coins, orders, loading, db, login, logout,
-      createCoin, placeOrder, updateBalance, transferBalance, transferAsset, tradeCrypto, clearAllUserCoins, verifyUser
+      createCoin, instantListCoin, placeOrder, updateBalance, transferBalance, transferAsset, tradeCrypto, clearAllUserCoins, verifyUser,
+      deleteCoin, deletePost, submitVerificationRequest,
+      realTimeCryptos,
+      notifications, chats, addComment, sendChatMessage, markNotificationAsRead, markAllNotificationsAsRead
     }}>
       {children}
     </FirebaseContext.Provider>

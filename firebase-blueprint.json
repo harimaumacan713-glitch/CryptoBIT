@@ -53,6 +53,61 @@
          "avatar": { "type": "string" },
          "isVerified": { "type": "boolean" }
        }
+    },
+    "Comment": {
+       "title": "Comment",
+       "description": "Comment on a post",
+       "type": "object",
+       "properties": {
+         "postId": { "type": "string" },
+         "author": {
+           "type": "object",
+           "properties": {
+             "uid": { "type": "string" },
+             "name": { "type": "string" },
+             "avatar": { "type": "string" }
+           }
+         },
+         "content": { "type": "string" },
+         "createdAt": { "type": "number" }
+       }
+    },
+    "AppNotification": {
+       "title": "Notification",
+       "description": "In-app notifications",
+       "type": "object",
+       "properties": {
+         "recipientUid": { "type": "string" },
+         "sender": {
+           "type": "object",
+           "properties": {
+             "uid": { "type": "string" },
+             "name": { "type": "string" },
+             "avatar": { "type": "string" }
+           }
+         },
+         "type": { "type": "string" },
+         "message": { "type": "string" },
+         "postId": { "type": "string" },
+         "isRead": { "type": "boolean" },
+         "createdAt": { "type": "number" }
+       }
+    },
+    "ChatMessage": {
+       "title": "ChatMessage",
+       "description": "Direct message or chat message between users",
+       "type": "object",
+       "properties": {
+         "senderUid": { "type": "string" },
+         "senderName": { "type": "string" },
+         "senderAvatar": { "type": "string" },
+         "recipientUid": { "type": "string" },
+         "recipientName": { "type": "string" },
+         "recipientAvatar": { "type": "string" },
+         "content": { "type": "string" },
+         "createdAt": { "type": "number" },
+         "isRead": { "type": "boolean" }
+       }
     }
   },
   "firestore": {
@@ -67,6 +122,18 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "Collection of user profiles"
+    },
+    "/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments on user posts"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "AppNotification",
+      "description": "User notifications"
+    },
+    "/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Direct messages"
     }
   }
 }

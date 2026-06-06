@@ -29,6 +29,14 @@ export default function ProfilePage() {
   const [txAsset, setTxAsset] = useState('USD');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Realistic Deposit Flow State variables
+  const [depositStep, setDepositStep] = useState<'input' | 'payment_details' | 'verifying' | 'success'>('input');
+  const [depositMethod, setDepositMethod] = useState<'bca' | 'mandiri' | 'qris' | 'gopay'>('bca');
+  const [vaNumber, setVaNumber] = useState('');
+  const [depositCode, setDepositCode] = useState(0);
+  const [copiedVa, setCopiedVa] = useState(false);
+  const [verifyingProgressText, setVerifyingProgressText] = useState('Menghubungkan ke gateway Bank Indonesia...');
+
   const handleCopyAddress = () => {
     if (!userProfile?.walletAddress) return;
     try {
@@ -82,7 +90,41 @@ export default function ProfilePage() {
     try {
       const amount = Number(txAmount);
       if (txModal === 'Deposit') {
-        await updateBalance(amount);
+        if (depositStep === 'input') {
+          // Generate realistic billing details
+          const uniqueFactor = Math.floor(Math.random() * 900) + 100;
+          setDepositCode(uniqueFactor);
+          
+          let generatedVa = '';
+          if (depositMethod === 'bca') {
+            generatedVa = `80011${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          } else if (depositMethod === 'mandiri') {
+            generatedVa = `88008${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          } else {
+            generatedVa = `00026${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          }
+          setVaNumber(generatedVa);
+          setDepositStep('payment_details');
+          setIsProcessing(false);
+          return;
+        } else if (depositStep === 'payment_details') {
+          // Start simulated payment verification step
+          setDepositStep('verifying');
+          
+          setVerifyingProgressText('Menghubungkan ke server bank penerima...');
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          setVerifyingProgressText('Memeriksa rekonsiliasi mutasi rekening...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          setVerifyingProgressText('Sinkronisasi API CryptoBit gateway bursa...');
+          await new Promise(resolve => setTimeout(resolve, 1200));
+
+          await updateBalance(amount);
+          setDepositStep('success');
+          setIsProcessing(false);
+          return;
+        }
       } else if (txModal === 'Withdraw') {
         if (userProfile.balance < amount) throw new Error('Insufficient balance');
         await updateBalance(-amount);
@@ -106,7 +148,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-4 mt-4 w-full relative">
-      <ProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} />
+      <ProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onOpenVerification={() => setIsEditModalOpen(false)} />
 
       {/* Transaction Modal */}
       <AnimatePresence>
@@ -125,82 +167,410 @@ export default function ProfilePage() {
                 className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
               >
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-gray-900">{txModal} Funds</h3>
-                  <button onClick={() => setTxModal(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {txModal === 'Deposit' ? (
+                      depositStep === 'payment_details' ? 'Rincian Pembayaran' :
+                      depositStep === 'verifying' ? 'Verifikasi Sistem Gateway' :
+                      depositStep === 'success' ? 'Deposit Berhasil' : 'Deposit Saldo Realistis'
+                    ) : `${txModal} Funds`}
+                  </h3>
+                  <button 
+                    onClick={() => !isProcessing && setTxModal(null)} 
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-5 h-5"/>
+                  </button>
                 </div>
                 
                 <div className="p-6 space-y-4">
-                  {txModal === 'Transfer' && (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex gap-4">
-                        <div className="w-[110px] shrink-0">
-                          <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block mb-1">Pilih Aset</label>
-                          <select 
-                            value={txAsset} 
-                            onChange={e => setTxAsset(e.target.value)}
-                            className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none bg-white font-bold text-gray-800"
-                          >
-                            <option value="USD">USD</option>
-                            {assetEntries.map(([symbol]) => (
-                              <option key={symbol} value={symbol}>{symbol}</option>
-                            ))}
-                          </select>
+                  {txModal === 'Deposit' ? (
+                    // ------------------ DEPOSIT FLOW ------------------
+                    depositStep === 'input' ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                            Jumlah Deposit (USD)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                            <input 
+                              type="number" 
+                              value={txAmount}
+                              onChange={e => setTxAmount(e.target.value)}
+                              placeholder="100.00"
+                              className="w-full border border-gray-200 rounded-lg p-4 pl-8 text-xl font-bold focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none text-gray-950"
+                            />
+                          </div>
+                          
+                          {/* Live IDR conversion preview */}
+                          {txAmount && !isNaN(Number(txAmount)) && Number(txAmount) > 0 && (
+                            <div className="mt-2 bg-emerald-50/50 border border-emerald-100/50 p-2.5 rounded-lg flex justify-between text-xs text-gray-600">
+                              <span>Setara IDR (Kurs: Rp 16.350):</span>
+                              <span className="font-mono font-bold text-[#00AE64]">
+                                Rp {(Number(txAmount) * 16350).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1">
-                          <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block mb-1">E-Wallet Address / Email Penerima</label>
-                          <input 
-                            type="text" 
-                            value={txRecipient}
-                            onChange={e => setTxRecipient(e.target.value)}
-                            placeholder="Contoh: 0x8283956a85f11... atau email"
-                            className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none font-mono font-semibold text-gray-900"
+
+                        {/* Interactive Payment Methods List */}
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase block mb-2">
+                            Pilih Metode Pembayaran Realistis
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setDepositMethod('bca')}
+                              className={`p-3 border rounded-xl flex flex-col items-center justify-between transition-all text-left h-24 ${
+                                depositMethod === 'bca' 
+                                  ? 'border-[#00AE64] bg-emerald-50/20 text-[#00AE64] ring-2 ring-[#00AE64]/10' 
+                                  : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                              }`}
+                            >
+                              <div className="w-full flex justify-between items-center">
+                                <span className="bg-blue-600 text-white font-extrabold italic text-[9px] px-1.5 py-0.5 rounded leading-none">BCA</span>
+                                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'bca' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
+                                  {depositMethod === 'bca' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                </div>
+                              </div>
+                              <div className="w-full">
+                                <span className="text-[11px] font-bold block leading-tight text-gray-800">Virtual Account</span>
+                                <span className="text-[9px] text-gray-400 font-medium font-mono">BCA VA Instan</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDepositMethod('mandiri')}
+                              className={`p-3 border rounded-xl flex flex-col items-center justify-between transition-all text-left h-24 ${
+                                depositMethod === 'mandiri' 
+                                  ? 'border-[#00AE64] bg-emerald-50/20 text-[#00AE64] ring-2 ring-[#00AE64]/10' 
+                                  : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                              }`}
+                            >
+                              <div className="w-full flex justify-between items-center">
+                                <span className="bg-yellow-500 text-blue-900 font-extrabold italic text-[9px] px-1.5 py-0.5 rounded leading-none">Mandiri</span>
+                                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'mandiri' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
+                                  {depositMethod === 'mandiri' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                </div>
+                              </div>
+                              <div className="w-full">
+                                <span className="text-[11px] font-bold block leading-tight text-gray-800">Virtual Account</span>
+                                <span className="text-[9px] text-gray-400 font-medium font-mono">MANDIRI VA Instan</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDepositMethod('qris')}
+                              className={`p-3 border rounded-xl flex flex-col items-center justify-between transition-all text-left h-24 ${
+                                depositMethod === 'qris' 
+                                  ? 'border-[#00AE64] bg-emerald-50/20 text-[#00AE64] ring-2 ring-[#00AE64]/10' 
+                                  : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                              }`}
+                            >
+                              <div className="w-full flex justify-between items-center">
+                                <span className="bg-pink-600 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded leading-none font-mono font-bold">QRIS</span>
+                                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'qris' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
+                                  {depositMethod === 'qris' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                </div>
+                              </div>
+                              <div className="w-full">
+                                <span className="text-[11px] font-bold block leading-tight text-gray-800">QRIS Pay Instant</span>
+                                <span className="text-[9px] text-gray-400 font-medium font-mono">Gopay, OVO, Dana, LinkAja</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDepositMethod('gopay')}
+                              className={`p-3 border rounded-xl flex flex-col items-center justify-between transition-all text-left h-24 ${
+                                depositMethod === 'gopay' 
+                                  ? 'border-[#00AE64] bg-emerald-50/20 text-[#00AE64] ring-2 ring-[#00AE64]/10' 
+                                  : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                              }`}
+                            >
+                              <div className="w-full flex justify-between items-center">
+                                <span className="bg-blue-500 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded leading-none font-bold">GoPay</span>
+                                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'gopay' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
+                                  {depositMethod === 'gopay' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                </div>
+                              </div>
+                              <div className="w-full">
+                                <span className="text-[11px] font-bold block leading-tight text-gray-800">GoPay E-Wallet</span>
+                                <span className="text-[9px] text-gray-400 font-medium font-mono">Deeplink Terintegrasi</span>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Informative Security Disclaimer */}
+                        <p className="text-[10px] text-gray-400 bg-gray-50/70 p-2.5 rounded-lg border border-gray-150 leading-normal flex items-start gap-1.5">
+                          <span className="text-emerald-500">🔒</span>
+                          <span>Virtual trading simulator. Tidak memerlukan uang asli. Integrasi API Gateway ini dirancang realistis untuk mempermudah pemahaman proses deposit bursa sesungguhnya.</span>
+                        </p>
+
+                        <button 
+                          onClick={handleTransaction}
+                          disabled={isProcessing || !txAmount || Number(txAmount) <= 0}
+                          className="w-full mt-2 bg-[#00AE64] hover:bg-emerald-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 select-none shadow-md"
+                        >
+                          <span>Lanjut ke Pembayaran</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : depositStep === 'payment_details' ? (
+                      <div className="space-y-4">
+                        {/* Chosen Invoice Badge */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-700 flex justify-between items-center">
+                          <div>
+                            <span className="text-[10px] font-black tracking-wider text-gray-400 uppercase block">Metode Dipilih</span>
+                            <span className="font-extrabold uppercase text-gray-900 font-mono text-sm">
+                              {depositMethod === 'qris' ? 'QRIS INSTANT PAY' : `${depositMethod} Virtual Account`}
+                            </span>
+                          </div>
+                          <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-md font-bold animate-pulse">Menunggu Transfer</span>
+                        </div>
+
+                        {/* Amount Box */}
+                        <div className="bg-gradient-to-tr from-gray-950 to-gray-900 border border-gray-800 rounded-xl p-5 text-center text-white relative overflow-hidden">
+                          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">MUTASI NOMINAL TRANSFER (EKSKlusif)</p>
+                          <h2 className="text-2xl font-black text-amber-400 mt-1 font-mono tracking-normal">
+                            Rp {((Number(txAmount) * 16350) + depositCode).toLocaleString('id-ID')}
+                          </h2>
+                          <div className="flex gap-2 justify-center items-center text-[10px] text-slate-400 mt-1 font-semibold">
+                            <span>Setara:</span> 
+                            <span className="text-emerald-400 font-black">${Number(txAmount).toLocaleString()} USD</span>
+                            <span>+ Kode Unik VA: Rp {depositCode} (Otomatis)</span>
+                          </div>
+                        </div>
+
+                        {/* VA and Instruction Steps */}
+                        {depositMethod === 'qris' ? (
+                          <div className="flex flex-col items-center gap-3 bg-white border border-gray-200 p-4 rounded-xl">
+                            <span className="text-xs font-bold text-gray-700">Scan QRIS Resmi di Bawah ini:</span>
+                            
+                            {/* Realistic authentic Indonesian QRIS merchant template with scanning lasers */}
+                            <div className="relative w-48 h-64 border border-gray-150 p-1.5 rounded-xl flex items-center justify-center bg-white overflow-hidden shadow-md select-none">
+                              {/* Glowing green scanning line running vertically */}
+                              <motion.div 
+                                animate={{ y: [-15, 240, -15] }}
+                                transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                                className="absolute left-0 right-0 h-1 bg-emerald-500/90 blur-sm z-10 pointer-events-none"
+                              />
+                              {/* Authentic QRIS template image */}
+                              <img 
+                                src="/src/assets/images/qris_real_template_1780672687883.png" 
+                                alt="QRIS Merchant Payment" 
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-contain pointer-events-none rounded-lg"
+                              />
+                            </div>
+                            
+                            <span className="text-[10px] text-slate-500 font-mono font-bold tracking-wider bg-gray-100 px-3 py-1 rounded">QRIS ID: {vaNumber}</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">Nomor Rekening Virtual Account</span>
+                            <div className="flex gap-2">
+                              <div className="flex-1 bg-gray-100 border border-gray-200 rounded-lg p-3 font-mono font-extrabold text-gray-800 tracking-wider text-base select-all text-center flex items-center justify-center">
+                                {vaNumber}
+                              </div>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(vaNumber);
+                                  setCopiedVa(true);
+                                  setTimeout(() => setCopiedVa(false), 2000);
+                                }}
+                                className="bg-gray-100 border border-gray-200 hover:bg-gray-200 px-4 rounded-lg flex items-center justify-center transition-colors text-gray-600 active:scale-95"
+                              >
+                                {copiedVa ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-left space-y-1.5">
+                          <span className="text-[11px] font-bold text-gray-700 block border-b border-gray-200/60 pb-1">Petunjuk Pembayaran Realistis:</span>
+                          <ul className="text-[10px] text-gray-500 space-y-1 font-semibold leading-relaxed">
+                            <li className="flex items-start gap-1">
+                              <span className="text-[#00AE64]">1.</span> 
+                              <span>Buka m-Banking atau aplikasi E-Wallet kesayangan Anda.</span>
+                            </li>
+                            <li className="flex items-start gap-1">
+                              <span className="text-[#00AE64]">2.</span> 
+                              <span>Pilih menu Transfer Virtual Account, lalu masukkan nomor VA di atas atau Scan QR Code.</span>
+                            </li>
+                            <li className="flex items-start gap-1">
+                              <span className="text-[#00AE64]">3.</span> 
+                              <span>Pastikan nominal transfer sama persis dengan yang tertera (termasuk kode unik).</span>
+                            </li>
+                            <li className="flex items-start gap-1">
+                              <span className="text-[#00AE64]">4.</span> 
+                              <span className="text-amber-600 font-bold">INGAT: Ini simulasi pasar, Anda tinggal menekan tombol di bawah untuk verifikasi pembayaran palsu & instan saldo bertambah.</span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                          <button 
+                            type="button"
+                            onClick={() => setDepositStep('input')}
+                            className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition-all text-center shrink-0 active:scale-[0.98]"
+                          >
+                            Kembali
+                          </button>
+                          
+                          <button 
+                            onClick={handleTransaction}
+                            className="flex-[2] bg-[#00AE64] hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] select-none shadow-md"
+                          >
+                            <span>Saya Sudah Membayar</span>
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : depositStep === 'verifying' ? (
+                      <div className="py-10 flex flex-col items-center justify-center text-center space-y-5">
+                        {/* Beautiful rotating radar simulation */}
+                        <div className="relative w-24 h-24 flex items-center justify-center">
+                          <div className="absolute inset-0 border-4 border-slate-100 rounded-full" />
+                          <div className="absolute inset-0 border-4 border-t-[#00AE64] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
+                          <div className="absolute inset-2 border border-dashed border-emerald-500/20 rounded-full animate-[spin_12s_linear_infinite]" />
+                          <Wallet className="w-8 h-8 text-[#00AE64]" />
+                        </div>
+                        
+                        <div className="space-y-1.5 px-4">
+                          <h4 className="text-base font-extrabold text-gray-900 animate-pulse">Memverifikasi Pembayaran...</h4>
+                          <p className="text-xs text-gray-500 font-mono h-4">
+                            {verifyingProgressText}
+                          </p>
+                        </div>
+                        
+                        <div className="w-1/2 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <motion.div 
+                            initial={{ width: '0%' }}
+                            animate={{ width: '100%' }}
+                            transition={{ duration: 3 }}
+                            className="bg-[#00AE64] h-full"
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide leading-normal bg-gray-50 p-2.5 rounded-md border border-gray-150 flex items-start gap-1.5">
-                        <span className="text-[#00AE64]">💡</span> 
-                        <span>Anda dapat mentransfer dana secara instan ke pengguna lain menggunakan alamat e-wallet hex atau alamat email akun mereka.</span>
-                      </p>
-                    </div>
+                    ) : (
+                      // depositStep === 'success'
+                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                        {/* Perfect success scale animation with green ring */}
+                        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-[#00AE64]">
+                          <Check className="w-8 h-8 stroke-[3]" />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <h4 className="text-lg font-black text-gray-900 uppercase">Deposit Sukses Terakreditasi!</h4>
+                          <p className="text-xs text-gray-500 px-6">
+                            Sistem gateway berhasil menyinkronkan status mutasi Anda. Saldo virtual telah dimasukkan ke wallet Anda secara seketika.
+                          </p>
+                        </div>
+
+                        <div className="bg-gray-50 border border-gray-200/80 p-4 rounded-xl w-full text-left space-y-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400 font-semibold">Total Kredit Masuk</span>
+                            <span className="text-[#00AE64] font-black italic">+${Number(txAmount).toLocaleString('en-US', {minimumFractionDigits: 2})} USD</span>
+                          </div>
+                          <div className="flex justify-between text-xs border-t border-gray-200/50 pt-2">
+                            <span className="text-gray-400 font-semibold">Status Reconciled</span>
+                            <span className="text-gray-900 font-bold font-mono">200_OK_VERIFIED</span>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => {
+                            setTxModal(null);
+                            setTxAmount('');
+                          }}
+                          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 rounded-xl transition-all active:scale-[0.98]"
+                        >
+                          Selesai & Kembali ke Terminal
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    // ------------------ WITHDRAW & TRANSFER FLOWS ------------------
+                    <>
+                      {txModal === 'Transfer' && (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex gap-4">
+                            <div className="w-[110px] shrink-0">
+                              <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block mb-1">Pilih Aset</label>
+                              <select 
+                                value={txAsset} 
+                                onChange={e => setTxAsset(e.target.value)}
+                                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none bg-white font-bold text-gray-800"
+                              >
+                                <option value="USD">USD</option>
+                                {assetEntries.map(([symbol]) => (
+                                  <option key={symbol} value={symbol}>{symbol}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block mb-1">E-Wallet Address / Email Penerima</label>
+                              <input 
+                                type="text" 
+                                value={txRecipient}
+                                onChange={e => setTxRecipient(e.target.value)}
+                                placeholder="Contoh: 0x8283956a85f11... atau email"
+                                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none font-mono font-semibold text-gray-900"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide leading-normal bg-gray-50 p-2.5 rounded-md border border-gray-150 flex items-start gap-1.5">
+                            <span className="text-[#00AE64]">💡</span> 
+                            <span>Anda dapat mentransfer dana secara instan ke pengguna lain menggunakan alamat e-wallet hex atau alamat email akun mereka.</span>
+                          </p>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Amount {txModal === 'Deposit' ? '(USD)' : ''}</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
+                            {txModal !== 'Transfer' || txAsset === 'USD' ? '$' : ''}
+                          </span>
+                          <input 
+                            type="number" 
+                            value={txAmount}
+                            onChange={e => setTxAmount(e.target.value)}
+                            placeholder="0.00"
+                            className={`w-full border border-gray-200 rounded-lg p-4 text-xl font-bold focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none text-gray-950 ${(txModal !== 'Transfer' || txAsset === 'USD') ? 'pl-8' : ''}`}
+                          />
+                        </div>
+                        {txModal !== 'Deposit' && (
+                          <p className="text-xs text-gray-500 mt-2 text-right">
+                            Available: <span className="font-bold text-gray-900">
+                              {txAsset === 'USD' || txModal !== 'Transfer' 
+                                ? `$${userProfile.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` 
+                                : `${(userProfile.assets?.[txAsset] || 0).toLocaleString()} ${txAsset}`}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+
+                      <button 
+                        onClick={handleTransaction}
+                        disabled={isProcessing || !txAmount || Number(txAmount) <= 0}
+                        className="w-full mt-4 bg-[#00AE64] hover:bg-emerald-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                      >
+                        {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                          <>
+                            <span className="capitalize">Confirm {txModal}</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    </>
                   )}
-
-                  <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Amount {txModal === 'Deposit' ? '(USD)' : ''}</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
-                        {txModal !== 'Transfer' || txAsset === 'USD' ? '$' : ''}
-                      </span>
-                      <input 
-                        type="number" 
-                        value={txAmount}
-                        onChange={e => setTxAmount(e.target.value)}
-                        placeholder="0.00"
-                        className={`w-full border border-gray-200 rounded-lg p-4 text-xl font-bold focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none ${(txModal !== 'Transfer' || txAsset === 'USD') ? 'pl-8' : ''}`}
-                      />
-                    </div>
-                    {txModal !== 'Deposit' && (
-                      <p className="text-xs text-gray-500 mt-2 text-right">
-                        Available: <span className="font-bold text-gray-900">
-                          {txAsset === 'USD' || txModal !== 'Transfer' 
-                            ? `$${userProfile.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` 
-                            : `${(userProfile.assets?.[txAsset] || 0).toLocaleString()} ${txAsset}`}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-
-                  <button 
-                    onClick={handleTransaction}
-                    disabled={isProcessing || !txAmount || Number(txAmount) <= 0}
-                    className="w-full mt-4 bg-[#00AE64] hover:bg-emerald-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                  >
-                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                      <>
-                        <span className="capitalize">Confirm {txModal}</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
                 </div>
               </motion.div>
             </motion.div>
@@ -256,7 +626,7 @@ export default function ProfilePage() {
             )}
 
             <div className="flex items-center gap-4 sm:gap-6 mt-4">
-              <div onClick={() => setTxModal('Deposit')} className="flex flex-col items-center gap-1 cursor-pointer group">
+              <div onClick={() => { setDepositStep('input'); setTxModal('Deposit'); }} className="flex flex-col items-center gap-1 cursor-pointer group">
                 <div className="w-10 h-10 rounded-full bg-[#00AE64]/10 text-[#00AE64] flex items-center justify-center group-hover:bg-[#00AE64] group-hover:text-white transition-colors">
                   <Download className="w-5 h-5" />
                 </div>

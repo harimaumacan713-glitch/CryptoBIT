@@ -4,18 +4,19 @@
  */
 
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
-import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
+import { useFirebase } from './FirebaseProvider';
 
 export default function Sidebar() {
-  const [btcData] = useRealTimeCrypto([{
+  const { realTimeCryptos } = useFirebase();
+  const btcData = realTimeCryptos.find(c => c.symbol === 'BTC') || {
     symbol: 'BTC',
     name: 'Bitcoin',
-    price: 64206.35,
-    change: 44.30,
-    changePercent: 0.72,
-    logo: 'https://static.okx.com/cdn/oksupport/asset/currency/icon/btc.png',
-    sparkline: Array.from({ length: 20 }, (_, i) => ({ value: 64100 + i * 5 }))
-  }]);
+    price: 92450.25,
+    change: 1220.50,
+    changePercent: 1.34,
+    logo: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png',
+    sparkline: []
+  };
 
   const btcPrice = btcData.price;
   const btcChange = btcData.change;
