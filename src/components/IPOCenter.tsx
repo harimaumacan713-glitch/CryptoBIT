@@ -10,7 +10,7 @@ import { Zap, Coins, Globe, Twitter, Loader2, Sparkles, AlertCircle, ArrowUpRigh
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function IPOCenter() {
-  const { coins, placeOrder, user, userProfile, login, instantListCoin } = useFirebase();
+  const { coins, placeOrder, user, userProfile, login, instantListCoin, deleteCoin } = useFirebase();
   const [filter, setFilter] = useState<'All' | 'Live' | 'Upcoming' | 'Listed' | 'Failed'>('All');
   const [selectedCoin, setSelectedCoin] = useState<IPOCoin | null>(null);
   const [amount, setAmount] = useState<string>('');
@@ -253,8 +253,12 @@ export default function IPOCenter() {
                     <div className="flex items-center gap-2">
                       {user && user.uid === coin.creatorId && coin.status !== 'Listed' && coin.status !== 'Failed' && (
                         <button 
-                          onClick={() => deleteCoin(coin.id)}
-                          className="p-2 rounded-sm bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors"
+                          onClick={() => {
+                            if (window.confirm("Apakah Anda yakin ingin menghapus koin ini? Tindakan ini tidak dapat dibatalkan.")) {
+                              deleteCoin(coin.id);
+                            }
+                          }}
+                          className="p-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 transition-all"
                           title="Hapus Koin"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -357,7 +361,7 @@ export default function IPOCenter() {
                 onClick={() => setSelectedCoin(null)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold cursor-pointer text-sm"
               >
-                ✕
+                X
               </button>
 
               {successMsg ? (
@@ -397,7 +401,7 @@ export default function IPOCenter() {
 
                   {userProfile && (
                     <div className="flex items-center justify-between text-xs font-bold px-1">
-                      <span className="text-gray-400">Saldo Virtual Anda</span>
+                      <span className="text-gray-400">Saldo Rekening Anda</span>
                       <span className="text-[#00AE64]">${userProfile.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}

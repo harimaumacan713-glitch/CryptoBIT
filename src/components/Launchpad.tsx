@@ -126,32 +126,32 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
     }
 
     if (cleanedName.length < 3) {
-      triggerToast('error', "🚨 Nama Lengkap terlalu pendek! Harap sertakan nama asli yang valid.");
+      triggerToast('error', "Nama Lengkap terlalu pendek! Harap sertakan nama asli yang valid.");
       return;
     }
 
     if (/^[0-9]+$/.test(cleanedName) || /^[a-zA-Z]\.?$/.test(cleanedName) || /[^a-zA-Z\s.]/.test(cleanedName)) {
-      triggerToast('error', "🚨 Deteksi Fraud: Nama Lengkap tidak valid atau mengandung karakter dilarang!");
+      triggerToast('error', "Deteksi Fraud: Nama Lengkap tidak valid atau mengandung karakter dilarang!");
       return;
     }
 
     if (cleanedId.length < 8 || cleanedId.length > 20) {
-      triggerToast('error', "🚨 Deteksi Fraud: Nomor ID / Passport harus berukuran 8 hingga 20 karakter.");
+      triggerToast('error', "Deteksi Fraud: Nomor ID / Passport harus berukuran 8 hingga 20 karakter.");
       return;
     }
 
     if (/^(.)\1+$/.test(cleanedId) || cleanedId === "12345678" || cleanedId === "123456789") {
-      triggerToast('error', "🚨 Deteksi Fraud: Nomor ID tidak valid atau menggunakan angka palsu/reman.");
+      triggerToast('error', "Deteksi Fraud: Nomor ID tidak valid atau menggunakan angka palsu/reman.");
       return;
     }
 
     if (!kycForm.hasUploadedId) {
-      triggerToast('error', "🚨 Dokumen Diperlukan: Harap unggah Foto Kartu Identitas.");
+      triggerToast('error', "Dokumen Diperlukan: Harap unggah Foto Kartu Identitas.");
       return;
     }
 
     if (!kycForm.hasUploadedSelfie) {
-      triggerToast('error', "🚨 Swafoto Diperlukan: Harap unggah Swafoto Diri pemohon.");
+      triggerToast('error', "Swafoto Diperlukan: Harap unggah Swafoto Diri pemohon.");
       return;
     }
 
@@ -180,9 +180,9 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
     if (!user) return;
     setGrantLoading(true);
     try {
-      await updateBalance(2000000); // Give 2,000,000 USD virtual capital
+      await updateBalance(2000000); // Give 2,000,000 USD capital
       setGrantClaimed(true);
-      triggerToast('success', "Aset Pendanaan Pengembang sebesar $2,000,000 Virtual USD berhasil dikreditkan ke wallet Anda!");
+      triggerToast('success', "Aset Pendanaan Pengembang sebesar $2,000,000 USD berhasil dikreditkan ke wallet Anda!");
     } catch (err: any) {
       triggerToast('error', "Klaim pendanaan gagal: " + err.message);
     } finally {
@@ -192,7 +192,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
 
   const handleSubmit = async () => {
     if (formData.liquidity < 10) {
-      triggerToast('error', "⚠️ Deposit Likuiditas Minimum adalah $10 USD!");
+      triggerToast('error', "Deposit Likuiditas Minimum adalah $10 USD!");
       return;
     }
     if (!formData.name || !formData.symbol || !formData.listingDate) {
@@ -258,7 +258,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                 <ShieldCheck className="w-3 h-3" /> KYC Verified
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white mt-1">CRYPTOBIT LAUNCHPAD</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-white mt-1">VIA X LAUNCHPAD</h1>
             <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-semibold">Terbitkan koin kustom Anda sendiri pada AMM Pool secara profesional tanpa kode pemrograman.</p>
          </div>
          <button
@@ -317,7 +317,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                         <div>
                           <p className="text-xs font-black uppercase tracking-wider text-amber-300 font-sans">Daftar Likuiditas Pengembang Kurang!</p>
                           <p className="text-[11px] text-amber-400/90 font-semibold leading-relaxed mt-0.5">
-                            Saldo Anda saat ini adalah <strong>${(userProfile.balance || 0).toLocaleString()}</strong>. Anda memerlukan minimal <strong>$1,000,000 USD</strong> virtual liquidity untuk meluncurkan pasar bursa koin baru.
+                            Saldo Anda saat ini adalah <strong>${(userProfile.balance || 0).toLocaleString()}</strong>. Anda memerlukan minimal <strong>$1,000,000 USD</strong> liquidity untuk meluncurkan pasar bursa koin baru.
                           </p>
                         </div>
                       </div>

@@ -162,7 +162,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
     } catch (e) {
       console.error("Gagal menyinkronkan status penolakan ke Firestore:", e);
     }
-    triggerToast('error', `🚨 Pengajuan Ditolak: ${reason}`);
+    triggerToast('error', `Pengajuan Ditolak: ${reason}`);
   };
 
   const handleResetCooldown = async () => {
@@ -181,7 +181,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
 
     setRejectedAt(null);
     setTimeLeft(0);
-    triggerToast('success', "🔄 Simulasi: Periode tunggu berhasil di-reset! Anda sekarang bisa mendaftar ulang.");
+    triggerToast('success', "Pendaftaran ulang berhasil disiapkan! Silakan isi formulir kembali.");
   };
 
   const handleProcessDecision = async () => {
@@ -261,12 +261,12 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
     }
 
     if (!kycForm.hasUploadedId || !idImageBase64) {
-      triggerToast('error', "🚨 Dokumen Diperlukan: Harap unggah Foto Kartu Identitas.");
+      triggerToast('error', "Dokumen Diperlukan: Harap unggah Foto Kartu Identitas.");
       return;
     }
 
     if (!kycForm.hasUploadedSelfie) {
-      triggerToast('error', "🚨 Swafoto Diperlukan: Harap unggah Swafoto Diri pemohon.");
+      triggerToast('error', "Swafoto Diperlukan: Harap unggah Swafoto Diri pemohon.");
       return;
     }
 
@@ -325,9 +325,9 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
   const handleClaimGrant = async () => {
     setGrantLoading(true);
     try {
-      await updateBalance(2000000); // Give 2,000,000 USD virtual capital
+      await updateBalance(2000000); // Give 2,000,000 USD capital
       setGrantClaimed(true);
-      triggerToast('success', "Aset Pendanaan Pengembang sebesar $2,000,000 Virtual USD telah ditambahkan!");
+      triggerToast('success', "Aset Pendanaan Pengembang sebesar $2,000,000 USD telah ditambahkan!");
     } catch (err: any) {
       triggerToast('error', "Klaim dana gagal: " + err.message);
     } finally {
@@ -387,21 +387,21 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                     </span>
                     <h3 className="text-lg font-black text-gray-950 mt-3 leading-none">KYC Verifikasi Sukses!</h3>
                     <p className="text-gray-500 text-xs mt-2.5 max-w-sm leading-relaxed">
-                      Selamat, akun Anda telah lolos prosedur pengujian kepatuhan DApps. Anda sekarang memiliki hak istimewa penuh di ekosistem **CryptoBit**:
+                      Selamat, akun Anda telah lolos prosedur pengujian kepatuhan DApps. Anda sekarang memiliki hak istimewa penuh di ekosistem **VIA X**:
                     </p>
                   </div>
 
                   <div className="w-full bg-gray-50 border border-gray-150 rounded-xl p-4 text-left space-y-3 mt-2">
                     <div className="flex gap-2.5 text-xs">
-                      <span className="text-[#00AE64] font-black">✔️</span>
+                      <CheckCircle className="w-4 h-4 text-[#00AE64] shrink-0 mt-0.5" />
                       <p className="text-gray-700 font-semibold leading-normal"><strong className="text-gray-950">Akses Launchpad:</strong> Kuasa rilis koin kustom dan rilis IPO baru.</p>
                     </div>
                     <div className="flex gap-2.5 text-xs">
-                      <span className="text-[#00AE64] font-black">✔️</span>
+                      <CheckCircle className="w-4 h-4 text-[#00AE64] shrink-0 mt-0.5" />
                       <p className="text-gray-700 font-semibold leading-normal"><strong className="text-gray-950">Badge Terverifikasi:</strong> Badge centang biru di sebelah nama profil dan postingan Anda.</p>
                     </div>
                     <div className="flex gap-2.5 text-xs">
-                      <span className="text-[#00AE64] font-black">✔️</span>
+                      <CheckCircle className="w-4 h-4 text-[#00AE64] shrink-0 mt-0.5" />
                       <p className="text-gray-700 font-semibold leading-normal"><strong className="text-gray-950">Limitasi Berkurang:</strong> Bebas biaya swap kustom, perlindungan slippage cerdas.</p>
                     </div>
                   </div>
@@ -438,10 +438,10 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                       <p className="text-emerald-300 font-semibold">  [+] NIK Terbaca KTP  : &quot;{userProfile.kycDetails?.detectedNumber}&quot;</p>
                       <p className="text-slate-405">[info] PERBANDINGAN METADATA INPUT DENGAN DOKUMEN FISIK:</p>
                       <p className={userProfile.kycDetails?.checks?.nameMatched ? "text-emerald-400 ml-2" : "text-rose-450 ml-2 font-bold animate-pulse"}>
-                        {userProfile.kycDetails?.checks?.nameMatched ? "✓ NAMA SESUAI/COCOK" : "✗ NAMA BERBEDA / TIDAK SESUAI KTP"}
+                        {userProfile.kycDetails?.checks?.nameMatched ? "TERVERIFIKASI: NAMA COCOK" : "TIDAK SESUAI: NAMA BERBEDA DENGAN KTP"}
                       </p>
                       <p className={userProfile.kycDetails?.checks?.numberMatched ? "text-emerald-400 ml-2" : "text-rose-450 ml-2 font-bold animate-pulse"}>
-                        {userProfile.kycDetails?.checks?.numberMatched ? "✓ NIK/PASSPORT ID COCOK" : "✗ NIK/PASSPORT ID TIDAK SESUAI KTP"}
+                        {userProfile.kycDetails?.checks?.numberMatched ? "TERVERIFIKASI: NIK/PASSPORT COCOK" : "TIDAK SESUAI: NIK/PASSPORT TIDAK SESUAI"}
                       </p>
                       <p className="text-slate-400 mt-1">[info] ANTRIAN SUBMISI: Berkas masuk dalam antrean audit kepatuhan manual Backoffice.</p>
                       <p className={userProfile.kycDetails?.checks?.nameMatched && userProfile.kycDetails?.checks?.numberMatched ? "text-amber-300" : "text-rose-400 font-bold animate-pulse"}>
@@ -498,7 +498,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                   </div>
                   <div>
                     <span className="bg-rose-50 border border-rose-100 text-rose-700 text-[10px] tracking-widest font-black uppercase px-2.5 py-1 rounded inline-flex items-center gap-1.5 shadow-sm">
-                      ⚠️ Pengajuan Ditolak (Rejected)
+                      Pengajuan Ditolak (Rejected)
                     </span>
                     <h3 className="text-lg font-black text-gray-950 mt-3 leading-none">Verifikasi Gagal / Dibatalkan</h3>
                     <p className="text-rose-800 text-xs font-semibold bg-rose-50/60 border border-rose-100 p-3 rounded-xl mt-3.5 leading-relaxed max-w-sm mx-auto">
@@ -614,7 +614,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                       >
                         <Upload className="w-4 h-4 mx-auto mb-1 text-gray-400" />
                         <span className="text-[10px] font-bold block truncate">
-                          {kycForm.hasUploadedId ? "✅ KTP Tersemat" : "Unggah KTP / Passport"}
+                          {kycForm.hasUploadedId ? "KTP Tersemat" : "Unggah KTP / Passport"}
                         </span>
                       </div>
 
@@ -628,7 +628,7 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                       >
                         <Upload className="w-4 h-4 mx-auto mb-1 text-gray-400" />
                         <span className="text-[10px] font-bold block truncate">
-                          {kycForm.hasUploadedSelfie ? "✅ Swafoto Tersemat" : "Unggah Swafoto Diri"}
+                          {kycForm.hasUploadedSelfie ? "Swafoto Tersemat" : "Unggah Swafoto Diri"}
                         </span>
                       </div>
                     </div>

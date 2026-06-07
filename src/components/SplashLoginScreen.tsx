@@ -104,10 +104,10 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
   };
 
   return (
-    <div className="fixed inset-0 min-h-screen bg-[#070A13] flex items-center justify-center overflow-x-hidden overflow-y-auto z-[100] font-sans selection:bg-[#00AE64]/30">
+    <div className="fixed inset-0 min-h-screen bg-[#06122d] flex items-center justify-center overflow-x-hidden overflow-y-auto z-[100] font-sans selection:bg-[#00AE64]/30">
       
       {/* 1. CHROMELESS BACKGROUND ENGINE - NEON SCROLL, COLOR EMISSIONS & FALLBACK VIDEO */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#060810]">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#040e24]">
         
         {/* Ambient fallback/underlay video */}
         <video 
@@ -116,12 +116,9 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
           muted 
           playsInline 
           className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-30 select-none brightness-50"
-          poster="/src/assets/images/web3_banner_1779983854222.png"
         >
-          <source src="/src/assets/video.mp4" type="video/mp4" />
-          <source src="/video.mp4" type="video/mp4" />
-          <source src="/src/assets/images/video.mp4" type="video/mp4" />
-          <source src="https://assets.mixkit.co/videos/preview/mixkit-city-traffic-in-the-night-with-skyscrapers-31215-large.mp4" type="video/mp4" />
+          <source src="https://cdn.pixabay.com/video/2019/11/15/29114-373679883_large.mp4" type="video/mp4" />
+          <source src="https://cdn.pixabay.com/video/2021/04/12/70817-537380902_large.mp4" type="video/mp4" />
         </video>
         
         {/* Pure CSS/SVG Infinite-scrolling 3D Perspective Grid - ALWAYS GORGEOUSLY RUNNING! */}
@@ -252,7 +249,7 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
               transition={{ duration: 0.8, delay: 0.2 }}
               className="text-[9px] xs:text-[10px] sm:text-xs font-extrabold tracking-[0.3em] text-[#00AE64] drop-shadow-[0_2px_4px_rgba(0,174,100,0.3)] uppercase mb-2"
             >
-              🚀 Welcome Crypto Bit Indonesia
+              Welcome Crypto Bit Indonesia
             </motion.p>
             
             <motion.h2 
@@ -272,7 +269,7 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
               transition={{ duration: 0.8, delay: 0.6 }}
               className="text-[10px] xs:text-xs font-bold tracking-[0.16em] text-slate-100 uppercase mt-4 sm:mt-5 bg-gradient-to-r from-slate-900/80 to-[#121b29]/80 border border-white/5 py-2 px-4 rounded-xl shadow-lg inline-block"
             >
-              ⭐ JOIN SESUAI MODAL KALIAN
+              JOIN SESUAI MODAL KALIAN
             </motion.p>
 
             {/* Quick trust metrics under heading to look incredibly professional */}
@@ -346,7 +343,7 @@ export default function SplashLoginScreen({ onLoginSuccess }: { onLoginSuccess: 
 
                   <div className="mt-5 border-t border-slate-900 pt-4 flex justify-between items-center text-[9px] text-slate-500 font-mono">
                     <span>VERS_PRO_v2.01</span>
-                    <span>© CRYPTOBIT GLOBAL</span>
+                    <span>© VIA X GLOBAL</span>
                   </div>
                 </motion.div>
               )}

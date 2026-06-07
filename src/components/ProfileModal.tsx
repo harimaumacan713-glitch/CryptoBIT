@@ -37,7 +37,7 @@ export default function ProfileModal({ isOpen, onClose, onOpenVerification }: { 
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("🚨 Batas Maksimal: Ukuran berkas gambar maksimal adalah 2MB!");
+        alert("Batas Maksimal: Ukuran berkas gambar maksimal adalah 2MB!");
         return;
       }
       const reader = new FileReader();

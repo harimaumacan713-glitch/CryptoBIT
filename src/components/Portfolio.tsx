@@ -71,7 +71,7 @@ export default function Portfolio() {
 
   const getShareText = () => {
     if (!liveSelectedAsset) return '';
-    const sign = liveSelectedAsset.isPositive ? '🟢' : '🔴';
+    const sign = liveSelectedAsset.isPositive ? '[PROFIT]' : '[LOSS]';
     const plusMinus = liveSelectedAsset.isPositive ? '+' : '';
     const formattedPl = liveSelectedAsset.isPositive 
       ? liveSelectedAsset.pl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -79,20 +79,20 @@ export default function Portfolio() {
     const formattedPrice = liveSelectedAsset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
     const timestamp = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
-    return `*▬▬▬▬▬▬▬ CRYPTOBIT CARD ▬▬▬▬▬▬▬*
-🚀 *POSISI PERDAGANGAN BERHASIL DITUTUP*
-📅 _${timestamp}_
+    return `*▬▬▬▬▬▬▬ VIA X CARD ▬▬▬▬▬▬▬*
+*POSISI PERDAGANGAN BERHASIL DITUTUP*
+*Tanggal:* _${timestamp}_
 *▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬*
 
-🪙 *Aset:* $${liveSelectedAsset.symbol} / USD
-📊 *ROI PNL:* *${plusMinus}${liveSelectedAsset.percentage.toFixed(2)}%* ${sign}
-💵 *Keuntungan/Kerugian:* *${liveSelectedAsset.isPositive ? '+' : '-'}$${formattedPl} USD*
-⚖️ *Sisa Saldo Unit:* ${liveSelectedAsset.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${liveSelectedAsset.symbol}
-🎯 *Harga Eksekusi:* $${formattedPrice}
+*Aset:* $${liveSelectedAsset.symbol} / USD
+*ROI PNL:* *${plusMinus}${liveSelectedAsset.percentage.toFixed(2)}%* ${sign}
+*Keuntungan/Kerugian:* *${liveSelectedAsset.isPositive ? '+' : '-'}$${formattedPl} USD*
+*Sisa Saldo Unit:* ${liveSelectedAsset.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${liveSelectedAsset.symbol}
+*Harga Eksekusi:* $${formattedPrice}
 
 *▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬*
-📱 _Buka & Mulai Berdagang Real-Time:_
-👉 https://cryptobit.app`;
+_Buka & Mulai Berdagang Real-Time:_
+Link: https://viax.app`;
   };
 
   const handleShareImage = async () => {
@@ -105,18 +105,18 @@ export default function Portfolio() {
       });
       const response = await fetch(dataUrl);
       const blob = await response.blob();
-      const file = new File([blob], `CryptoBit-${liveSelectedAsset.symbol}.png`, { type: 'image/png' });
+      const file = new File([blob], `VIAX-${liveSelectedAsset.symbol}.png`, { type: 'image/png' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `CryptoBit Trade Result: $${liveSelectedAsset.symbol}`,
-          text: `Check out my trade result on CryptoBit!`,
+          title: `VIA X Trade Result: $${liveSelectedAsset.symbol}`,
+          text: `Check out my trade result on VIA X!`,
         });
       } else {
         // Fallback for browsers that don't support file sharing
         const link = document.createElement('a');
-        link.download = `CryptoBit-Share-${liveSelectedAsset.symbol}-${new Date().getTime()}.png`;
+        link.download = `VIAX-Share-${liveSelectedAsset.symbol}-${new Date().getTime()}.png`;
         link.href = dataUrl;
         link.click();
         alert('Browser tidak mendukung berbagi gambar secara langsung. Gambar telah diunduh!');                
@@ -151,7 +151,7 @@ export default function Portfolio() {
         skipFonts: true,
       });
       const link = document.createElement('a');
-      link.download = `CryptoBit-Share-${liveSelectedAsset.symbol}-${new Date().getTime()}.png`;
+      link.download = `VIAX-Share-${liveSelectedAsset.symbol}-${new Date().getTime()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -194,7 +194,7 @@ export default function Portfolio() {
   const chartData = useMemo(() => {
     const data: Array<{ name: string; value: number; percentage: number; color: string }> = [];
     const colors = [
-      '#00AE64', // CryptoBit Green
+      '#00AE64', // VIA X Green
       '#3B82F6', // Blue
       '#8B5CF6', // Violet
       '#F59E0B', // Amber
@@ -264,7 +264,7 @@ export default function Portfolio() {
       <div className="grid grid-cols-1 md:grid-cols-5 bg-white border border-gray-200 rounded-sm overflow-hidden divide-x divide-gray-100 shadow-sm">
         <div className="p-4 flex flex-col items-center justify-center">
           <span className="text-sm font-bold text-gray-900">${userProfile.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-          <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">Virtual Balance</span>
+          <span className="text-[10px] text-gray-400 font-medium uppercase mt-1 tracking-tighter">Available Balance</span>
         </div>
         <div className="p-4 flex flex-col items-center justify-center">
           <span className="text-sm font-bold text-gray-900">${totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
@@ -651,13 +651,13 @@ export default function Portfolio() {
                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Avatar" className="w-10 h-10 rounded-full border-2 border-gray-700 bg-gray-800 shadow" />
                      <div className="flex flex-col">
                         <span className="text-gray-200 font-bold text-sm leading-tight">@{userProfile.username || user.email?.split('@')[0]}</span>
-                        <span className="text-gray-500 text-[10px] font-medium tracking-wide">CryptoBit Elite Trader</span>
+                        <span className="text-gray-500 text-[10px] font-medium tracking-wide">VIA X Elite Trader</span>
                      </div>
                    </div>
                    <div className="flex flex-col items-end">
                       <span className="text-gray-600 text-[10px] font-mono mb-1">{new Date().toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'})}</span>
                       <div className="w-10 h-10 rounded-sm bg-white p-1">
-                         <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://cryptobit.app/user/${userProfile.username}`} alt="QR" className="w-full h-full object-contain opacity-90"/>
+                         <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://viax.app/user/${userProfile.username}`} alt="QR" className="w-full h-full object-contain opacity-90"/>
                       </div>
                    </div>
                 </div>
@@ -683,7 +683,7 @@ export default function Portfolio() {
                    </div>
                    <span className="text-xs font-bold text-gray-400 group-hover:text-gray-300">Twitter</span>
                 </a>
-                <a href={`https://t.me/share/url?url=https://cryptobit.app&text=${encodeURIComponent(getShareText())}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
+                <a href={`https://t.me/share/url?url=https://viax.app&text=${encodeURIComponent(getShareText())}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
                    <div className="w-12 h-12 rounded-xl bg-[#1A1E29] flex items-center justify-center border border-gray-800 text-[#0088cc] group-hover:bg-[#0088cc]/10 transition-all shadow-lg active:scale-95">
                       <MessageCircle className="w-5 h-5"/>
                    </div>

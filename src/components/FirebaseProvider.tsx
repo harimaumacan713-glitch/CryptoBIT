@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, User, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc, getDocs, where } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc, getDocs, where, deleteDoc } from 'firebase/firestore';
 import { CryptoData, IPOCoin, IPOOrder, UserProfile, AppNotification, ChatMessage } from '../types';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { WATCHLIST_COINS } from '../utils/constants';
@@ -180,7 +180,100 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Automated epep coin, orderbook, and post cleanup to satisfy the user's delete request
+  useEffect(() => {
+    const cleanupUnwantedEpepAssets = async () => {
+      try {
+        console.log("Running auto-cleanup routine for epep-related assets...");
+        
+        // 1. Clean coins on firestore
+        const coinsSnap = await getDocs(collection(db, 'coins'));
+        for (const coinDoc of coinsSnap.docs) {
+          const coinData = coinDoc.data();
+          const nameLower = (coinData.name || "").toLowerCase();
+          const symbolLower = (coinData.symbol || "").toLowerCase();
+          
+          if (nameLower.includes('epep') || symbolLower.includes('epep')) {
+            console.log(`Cleaning up coin: ${coinData.name} (${coinDoc.id})`);
+            await deleteDoc(coinDoc.ref);
+            
+            // Delete associated orders (orderbook of coin epep)
+            const ordersSnap = await getDocs(query(collection(db, 'orders'), where('coinId', '==', coinDoc.id)));
+            for (const orderDoc of ordersSnap.docs) {
+              console.log(`Cleaning up orderbook order ${orderDoc.id}`);
+              await deleteDoc(orderDoc.ref);
+            }
+          }
+        }
 
+        // 2. Clean posts on firestore
+        const postsSnap = await getDocs(collection(db, 'posts'));
+        for (const postDoc of postsSnap.docs) {
+          const postData = postDoc.data();
+          const contentLower = (postData.content || "").toLowerCase();
+          const authorNameLower = (postData.author?.name || "").toLowerCase();
+          
+          if (contentLower.includes('epep') || authorNameLower.includes('epep')) {
+            console.log(`Cleaning up post: ${postDoc.id}`);
+            await deleteDoc(postDoc.ref);
+          }
+        }
+
+        // 3. Clean user wallets and assets (remove epep coins from balances so there are no broken references)
+        const usersSnap = await getDocs(collection(db, 'users'));
+        for (const userDoc of usersSnap.docs) {
+          const userData = userDoc.data();
+          let changed = false;
+          const assets = { ...(userData.assets || {}) };
+          const assetsInvested = { ...(userData.assetsInvested || {}) };
+          
+          Object.keys(assets).forEach(key => {
+            if (key.toLowerCase().includes('epep')) {
+              delete assets[key];
+              changed = true;
+            }
+          });
+          Object.keys(assetsInvested).forEach(key => {
+            if (key.toLowerCase().includes('epep')) {
+              delete assetsInvested[key];
+              changed = true;
+            }
+          });
+          
+          if (changed) {
+            console.log(`Cleaning up asset balances for user document: ${userDoc.id}`);
+            await updateDoc(userDoc.ref, { assets, assetsInvested });
+          }
+        }
+
+        // 4. Clean trades (chart data) on firestore
+        const tradesSnap = await getDocs(collection(db, 'trades'));
+        for (const tradeDoc of tradesSnap.docs) {
+          const tradeData = tradeDoc.data();
+          const symbolLower = (tradeData.symbol || "").toLowerCase();
+          if (symbolLower.includes('epep')) {
+            console.log(`Cleaning up trade: ${tradeDoc.id}`);
+            await deleteDoc(tradeDoc.ref);
+          }
+        }
+
+        // 5. Clean live transactions on firestore
+        const txsSnap = await getDocs(collection(db, 'liveTransactions'));
+        for (const txDoc of txsSnap.docs) {
+          const txData = txDoc.data();
+          const coinLower = (txData.coin || "").toLowerCase();
+          if (coinLower.includes('epep')) {
+            console.log(`Cleaning up liveTransaction: ${txDoc.id}`);
+            await deleteDoc(txDoc.ref);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal menjalankan pembersihan epep", err);
+      }
+    };
+
+    cleanupUnwantedEpepAssets();
+  }, []);
 
   // Automated Listing or Failure check (Real-time AMM Pool setup and Automated full refunding for failures)
   useEffect(() => {
@@ -596,7 +689,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
           
           // Slippage & Depth protections
           if (tokenPoolNew <= tokenPool * 0.05) {
-             throw new Error("🚨 GELOMBANG VOLATILITAS: Pembelian Anda terlalu besar! Likuiditas tidak mencukupi untuk memproses ukuran transaksi ini.");
+             throw new Error("GELOMBANG VOLATILITAS: Pembelian Anda terlalu besar! Likuiditas tidak mencukupi untuk memproses ukuran transaksi ini.");
           }
 
           usdPoolNew = k / tokenPoolNew;
@@ -614,7 +707,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
        } else {
           // Crash protection: prevent the coin creator from dumping > 5% of total supply at once
           if (user.uid === coinData.creatorId && amount > (coinData.totalSupply * 0.05)) {
-             throw new Error("🚨 CRASH PROTECTION ACTIVATED: Koki koin tidak diizinkan untuk menjual lebih dari 5% total supply dalam satu transaksi untuk melindungi investor ritel.");
+             throw new Error("CRASH PROTECTION ACTIVATED: Koki koin tidak diizinkan untuk menjual lebih dari 5% total supply dalam satu transaksi untuk melindungi investor ritel.");
           }
 
           tokenPoolNew = tokenPool + amount;
@@ -633,7 +726,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
        }
     }
     
-    // Calculate total trade size in virtual USD
+    // Calculate total trade size in USD
     const totalCost = amount * finalPrice;
     const userRef = doc(db, 'users', user.uid);
     const currentAssetAmount = userProfile.assets?.[symbol] || 0;

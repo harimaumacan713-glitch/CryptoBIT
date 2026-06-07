@@ -530,7 +530,7 @@ export default function AssetDetailModal({ coin, onClose }: AssetDetailModalProp
                         <h4 className="text-xs font-black text-gray-800 uppercase tracking-widest">Informasi Node Token & Likuiditas</h4>
                       </div>
                       <p className="text-[11px] text-gray-500 leading-relaxed font-semibold">
-                        Pasar spot CryptoBit terhubung langsung ke multi-pool likuiditas terdesentralisasi (AMM). 
+                        Pasar spot VIA X terhubung langsung ke multi-pool likuiditas terdesentralisasi (AMM). 
                         Setiap order Anda diproses secara instan dan dimasukkan ke dalam Blockchain Ledger.
                       </p>
                     </div>

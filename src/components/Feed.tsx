@@ -79,7 +79,7 @@ const defaultMockPosts: Post[] = [
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=web3',
       isVerified: false
     },
-    content: 'Akumulasi Institusi di ETF Ethereum mulai terlihat signifikan hari ini. Apakah ini pertanda altseason akan segera dimulai? 🚀 #Ethereum #Web3',
+    content: 'Akumulasi Institusi di ETF Ethereum mulai terlihat signifikan hari ini. Apakah ini pertanda altseason akan segera dimulai? #Ethereum #Web3',
     timestamp: '4 jam yang lalu',
     likes: 89,
     comments: 23,
@@ -109,7 +109,7 @@ const initialNewsArticles: NewsArticle[] = [
     summary: 'Seorang investor muda Indonesia menjadi sorotan dunia kripto setelah dompet whale miliknya tercatat melakukan transaksi lebih dari $7 juta USD per hari, setara lebih dari Rp113 miliar.',
     timestamp: 'Baru saja',
     impact: 'Volatile',
-    source: 'CryptoBit News',
+    source: 'VIA X News',
     views: 1250,
     likes: 85,
     comments: 22,
@@ -224,6 +224,14 @@ export default function Feed() {
   const [isLoading, setIsLoading] = useState(true);
   const [likedPosts, setLikedPosts] = useState<Record<string, { liked: boolean; offset: number }>>({});
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [locallyDeletedPostIds, setLocallyDeletedPostIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('locally_deleted_posts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Custom states for Global Markets & Political News
   const [newsList, setNewsList] = useState<NewsArticle[]>(initialNewsArticles);
@@ -426,14 +434,35 @@ export default function Feed() {
     setNewsList(prev => [newArticle, ...prev]);
     
     // Trigger notification
-    setAlertNotification(`🚨 BREAKING NEWS: ${newArticle.title}`);
+    setAlertNotification(`BREAKING NEWS: ${newArticle.title}`);
     setTimeout(() => {
       setAlertNotification(null);
     }, 5500);
   };
 
+  const handleDeletePost = async (postId: string, isCreatedByMe: boolean) => {
+    if (isCreatedByMe) {
+      try {
+        await deletePost(postId);
+      } catch (err: any) {
+        console.warn("Firestore delete failed, using local fallback deletion:", err);
+      }
+    }
+    const updated = [...locallyDeletedPostIds, postId];
+    setLocallyDeletedPostIds(updated);
+    try {
+      localStorage.setItem('locally_deleted_posts', JSON.stringify(updated));
+    } catch (e) {
+      console.error(e);
+    }
+    setAlertNotification("Postingan berhasil dihapus!");
+    setTimeout(() => {
+      setAlertNotification(null);
+    }, 3000);
+  };
+
   // Combine stream dynamic posts with hardcoded premium ones
-  const combinedPosts = [...dbPosts, ...defaultMockPosts];
+  const combinedPosts = [...dbPosts, ...defaultMockPosts].filter(post => !locallyDeletedPostIds.includes(post.id));
 
   // Filter global macro & political news based on user state
   const filteredNews = newsList.filter(article => {
@@ -618,11 +647,16 @@ export default function Feed() {
                             <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wide ml-1">· {post.timestamp}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            {isCurrentUser && (
-                              <button onClick={() => deletePost(post.id)} className="text-slate-500 hover:text-rose-500 transition-colors" title="Hapus Postingan">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await handleDeletePost(post.id, isCurrentUser);
+                              }} 
+                              className="text-slate-500 hover:text-rose-400 transition-colors p-1 hover:bg-rose-500/10 rounded" 
+                              title="Hapus Postingan"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                             <button className="text-slate-500 hover:text-white transition-colors">
                               <MoreHorizontal className="w-4 h-4" />
                             </button>
@@ -706,7 +740,7 @@ export default function Feed() {
                 className="bg-slate-800 hover:bg-slate-700 text-slate-100 font-extrabold text-[10px] uppercase tracking-wider px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer flex-1 justify-center border border-slate-700"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Simulasi Berita Live
+                Update Berita Pasar
               </button>
               
               <button 
@@ -813,7 +847,7 @@ export default function Feed() {
                             article.impact === 'Volatile' ? 'text-[#FF8A00] bg-amber-950/45 border border-amber-500/20 animate-pulse' :
                             'text-slate-400 bg-slate-900 border border-slate-800'
                           }`}>
-                            ⚡ Impact: {article.impact}
+                            Impact: {article.impact}
                           </span>
 
                           <span className="text-slate-550 text-[10px] ml-auto font-medium">
@@ -855,7 +889,10 @@ export default function Feed() {
                         <div className="flex items-center gap-1.5">
                           <button 
                             type="button"
-                            onClick={() => alert(`Sistem: Berita "${article.title}" berhasil disalin ke papan klip!`)}
+                            onClick={() => {
+                              setAlertNotification(`Sistem: Berita "${article.title}" berhasil disalin ke papan klip!`);
+                              setTimeout(() => setAlertNotification(null), 3000);
+                            }}
                             className="text-[10px] font-black uppercase text-slate-500 hover:text-white tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
                           >
                             <Share2 className="w-3 h-3" /> Bagikan
@@ -864,7 +901,8 @@ export default function Feed() {
                             href="#news" 
                             onClick={(e) => {
                               e.preventDefault();
-                              alert(`Membuka Dokumen Referensi Berita Asli dari pihak ${article.source} secara aman...`);
+                              setAlertNotification(`Membuka Dokumen Referensi Berita Asli dari pihak ${article.source} secara aman...`);
+                              setTimeout(() => setAlertNotification(null), 3000);
                             }}
                             className="bg-[#121622] hover:bg-[#181d2c] text-slate-300 border border-slate-800 px-2.5 py-1 rounded-md transition-colors flex items-center gap-0.5 font-bold"
                           >

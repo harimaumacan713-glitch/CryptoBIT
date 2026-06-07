@@ -845,7 +845,7 @@ export default function Chartbit() {
                {/* Current Balances info */}
                <div className="bg-[#0c101b] rounded-lg border border-slate-800 p-3.5 space-y-2">
                  <div className="flex justify-between items-center text-xs">
-                   <span className="text-slate-500 font-bold">Saldo Virtual</span>
+                   <span className="text-slate-500 font-bold">Saldo Tersedia</span>
                    <span className="text-white font-extrabold font-mono">${(userProfile?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                  </div>
                  <div className="flex justify-between items-center text-xs">

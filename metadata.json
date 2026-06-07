@@ -1,7 +1,10 @@
 {
-  "name": "CryptoBit Exchange",
+  "name": "VIA X Exchange",
   "description": "Full-stack crypto exchange with Launchpad for creating coins, real-time IPO subscriptions, and automated listing systems.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

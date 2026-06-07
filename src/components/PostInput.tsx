@@ -168,7 +168,7 @@ export default function PostInput() {
               <X className="w-3.5 h-3.5" />
             </button>
             <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] text-white font-extrabold uppercase tracking-wide border border-slate-700/50">
-              🌄 Preview Lampiran
+              Preview Lampiran
             </div>
           </div>
         )}

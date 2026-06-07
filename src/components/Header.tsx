@@ -179,12 +179,41 @@ export default function Header({ setActiveTab }: HeaderProps) {
             onClick={() => { if (setActiveTab) setActiveTab('Markets'); }}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-8 h-8 bg-[#00AE64] rounded-lg flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current">
-                <path d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" />
+            <div className="flex items-center gap-2">
+              <svg viewBox="0 0 110 110" className="w-10 h-10 transform group-hover:scale-105 transition-all duration-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                <defs>
+                  <linearGradient id="viaGradientHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#1e3a8a" />
+                    <stop offset="50%" stopColor="#2563eb" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                  <linearGradient id="iGradientHeader" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#06b6d4" />
+                    <stop offset="100%" stopColor="#10b981" />
+                  </linearGradient>
+                </defs>
+                
+                {/* Big stylized "X" behind / below */}
+                <path d="M35 55 L25 55 L42 85 L25 85 L35 85 L50 85 L65 85 L75 85 L58 85 L75 55 L65 55 Z" fill="none" />
+                
+                {/* Elegant 3D shaded X shape */}
+                <path d="M32 82 L78 82 L60 52 L50 52 Z" fill="#475569" opacity="0.6" />
+                <path d="M40 82 L70 82 L55 96 L45 96 Z" fill="#334155" />
+                <path d="M25 82 L35 68 L50 90 L40 96 Z" fill="#1e293b" />
+                <path d="M85 82 L75 68 L60 90 L70 96 Z" fill="#1e293b" />
+
+                {/* V of VIA */}
+                <path d="M12 25 L25 25 L35 52 L30 52 Z" fill="url(#viaGradientHeader)" />
+                <path d="M25 25 L38 25 L45 52 L35 52 Z" fill="#2563eb" />
+                
+                {/* I of VIA */}
+                <rect x="49" y="25" width="8" height="27" rx="1.5" fill="url(#iGradientHeader)" />
+                
+                {/* A of VIA */}
+                <path d="M62 52 L70 25 L79 25 L88 52 L79 52 L77 43 L69 43 L67 52 Z M71 36 L75 36 L73 29 Z" fill="#94a3b8" />
               </svg>
+              <span className="text-white font-black text-2xl tracking-tighter italic">VIA <span className="text-cyan-400">X</span></span>
             </div>
-            <span className="text-white font-extrabold text-2xl tracking-tighter italic">Crypto<span className="text-[#00AE64]">Bit</span></span>
           </div>
           
           <div className="relative max-w-md w-full hidden md:block">

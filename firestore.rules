@@ -31,11 +31,13 @@ service cloud.firestore {
         // Allow creator to update their coin
         resource.data.creatorId == request.auth.uid
       );
+      allow delete: if isSignedIn();
     }
 
     match /orders/{orderId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidOrder(request.resource.data);
+      allow delete: if isSignedIn();
     }
 
     match /users/{userId} {
@@ -59,6 +61,32 @@ service cloud.firestore {
 
     match /messages/{messageId} {
       allow read, create, update, delete: if isSignedIn();
+    }
+
+    match /academy_classes/{classId} {
+      allow read: if true;
+      allow create, update, delete: if isSignedIn();
+      
+      match /viewers/{viewerId} {
+        allow read, write: if isSignedIn();
+        
+        match /host_candidates/{candidateId} {
+          allow read, write: if isSignedIn();
+        }
+        match /viewer_candidates/{candidateId} {
+          allow read, write: if isSignedIn();
+        }
+      }
+    }
+
+    match /class_messages/{messageId} {
+      allow read: if true;
+      allow create, update, delete: if isSignedIn();
+    }
+
+    match /class_questions/{questionId} {
+      allow read: if true;
+      allow create, update, delete: if isSignedIn();
     }
   }
 }

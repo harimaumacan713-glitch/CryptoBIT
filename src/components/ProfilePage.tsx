@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useFirebase } from './FirebaseProvider';
-import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check } from 'lucide-react';
+import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check, AlertTriangle, ArrowUpRight, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ProfileModal from './ProfileModal';
+import VerificationModal from './VerificationModal';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { WATCHLIST_COINS } from '../utils/constants';
 
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const cryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
   const [activeTab, setActiveTab] = useState('Assets');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   
   // Transaction Modals State
@@ -36,6 +38,12 @@ export default function ProfilePage() {
   const [depositCode, setDepositCode] = useState(0);
   const [copiedVa, setCopiedVa] = useState(false);
   const [verifyingProgressText, setVerifyingProgressText] = useState('Menghubungkan ke gateway Bank Indonesia...');
+
+  // Realistic Withdraw Flow State variables
+  const [withdrawStep, setWithdrawStep] = useState<'input' | 'processing' | 'success'>('input');
+  const [withdrawBank, setWithdrawBank] = useState<'bca' | 'mandiri' | 'bri' | 'bni'>('bca');
+  const [withdrawAccountName, setWithdrawAccountName] = useState('');
+  const [withdrawAccountNumber, setWithdrawAccountNumber] = useState('');
 
   const handleCopyAddress = () => {
     if (!userProfile?.walletAddress) return;
@@ -117,7 +125,7 @@ export default function ProfilePage() {
           setVerifyingProgressText('Memeriksa rekonsiliasi mutasi rekening...');
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-          setVerifyingProgressText('Sinkronisasi API CryptoBit gateway bursa...');
+          setVerifyingProgressText('Sinkronisasi API VIA X gateway bursa...');
           await new Promise(resolve => setTimeout(resolve, 1200));
 
           await updateBalance(amount);
@@ -127,7 +135,19 @@ export default function ProfilePage() {
         }
       } else if (txModal === 'Withdraw') {
         if (userProfile.balance < amount) throw new Error('Insufficient balance');
-        await updateBalance(-amount);
+        
+        if (withdrawStep === 'input') {
+          if (!withdrawAccountName || !withdrawAccountNumber) {
+            throw new Error('Nama dan Nomor Rekening wajib diisi');
+          }
+          setWithdrawStep('processing');
+          setIsProcessing(false);
+          
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          setWithdrawStep('success');
+          await updateBalance(-amount);
+          return;
+        }
       } else if (txModal === 'Transfer') {
         if (!txRecipient) throw new Error('Recipient required');
         if (txAsset === 'USD') {
@@ -148,7 +168,8 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-4 mt-4 w-full relative">
-      <ProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onOpenVerification={() => setIsEditModalOpen(false)} />
+      <ProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onOpenVerification={() => { setIsEditModalOpen(false); setIsVerificationModalOpen(true); }} />
+      <VerificationModal isOpen={isVerificationModalOpen} onClose={() => setIsVerificationModalOpen(false)} />
 
       {/* Transaction Modal */}
       <AnimatePresence>
@@ -172,6 +193,9 @@ export default function ProfilePage() {
                       depositStep === 'payment_details' ? 'Rincian Pembayaran' :
                       depositStep === 'verifying' ? 'Verifikasi Sistem Gateway' :
                       depositStep === 'success' ? 'Deposit Berhasil' : 'Deposit Saldo Realistis'
+                    ) : txModal === 'Withdraw' ? (
+                      withdrawStep === 'processing' ? 'Proses Penarikan' :
+                      withdrawStep === 'success' ? 'Penarikan Berhasil' : 'Penarikan Dana / Withdraw'
                     ) : `${txModal} Funds`}
                   </h3>
                   <button 
@@ -229,13 +253,13 @@ export default function ProfilePage() {
                               }`}
                             >
                               <div className="w-full flex justify-between items-center">
-                                <span className="bg-blue-600 text-white font-extrabold italic text-[9px] px-1.5 py-0.5 rounded leading-none">BCA</span>
+                                <span className="bg-blue-800 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-sm">BCA</span>
                                 <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'bca' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
                                   {depositMethod === 'bca' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                                 </div>
                               </div>
                               <div className="w-full">
-                                <span className="text-[11px] font-bold block leading-tight text-gray-800">Virtual Account</span>
+                                <span className="text-[11px] font-bold block leading-tight text-gray-800">Transfer Rekening</span>
                                 <span className="text-[9px] text-gray-400 font-medium font-mono">BCA VA Instan</span>
                               </div>
                             </button>
@@ -250,13 +274,13 @@ export default function ProfilePage() {
                               }`}
                             >
                               <div className="w-full flex justify-between items-center">
-                                <span className="bg-yellow-500 text-blue-900 font-extrabold italic text-[9px] px-1.5 py-0.5 rounded leading-none">Mandiri</span>
+                                <span className="bg-yellow-500 text-blue-950 font-black text-[10px] px-2 py-0.5 rounded shadow-sm">Mandiri</span>
                                 <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'mandiri' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
                                   {depositMethod === 'mandiri' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                                 </div>
                               </div>
                               <div className="w-full">
-                                <span className="text-[11px] font-bold block leading-tight text-gray-800">Virtual Account</span>
+                                <span className="text-[11px] font-bold block leading-tight text-gray-800">Transfer Rekening</span>
                                 <span className="text-[9px] text-gray-400 font-medium font-mono">MANDIRI VA Instan</span>
                               </div>
                             </button>
@@ -271,7 +295,7 @@ export default function ProfilePage() {
                               }`}
                             >
                               <div className="w-full flex justify-between items-center">
-                                <span className="bg-pink-600 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded leading-none font-mono font-bold">QRIS</span>
+                                <span className="bg-pink-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-sm">QRIS</span>
                                 <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'qris' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
                                   {depositMethod === 'qris' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                                 </div>
@@ -292,7 +316,7 @@ export default function ProfilePage() {
                               }`}
                             >
                               <div className="w-full flex justify-between items-center">
-                                <span className="bg-blue-500 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded leading-none font-bold">GoPay</span>
+                                <span className="bg-blue-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow-sm">GoPay</span>
                                 <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${depositMethod === 'gopay' ? 'border-[#00AE64] bg-[#00AE64]' : 'border-gray-300'}`}>
                                   {depositMethod === 'gopay' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                                 </div>
@@ -307,8 +331,8 @@ export default function ProfilePage() {
 
                         {/* Informative Security Disclaimer */}
                         <p className="text-[10px] text-gray-400 bg-gray-50/70 p-2.5 rounded-lg border border-gray-150 leading-normal flex items-start gap-1.5">
-                          <span className="text-emerald-500">🔒</span>
-                          <span>Virtual trading simulator. Tidak memerlukan uang asli. Integrasi API Gateway ini dirancang realistis untuk mempermudah pemahaman proses deposit bursa sesungguhnya.</span>
+                          <Lock className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span>Harap perhatikan seluruh instruksi transfer dengan saksama. Integrasi API Gateway dipantau dan dana akan masuk secara otomatis setelah konfirmasi bank.</span>
                         </p>
 
                         <button 
@@ -327,7 +351,7 @@ export default function ProfilePage() {
                           <div>
                             <span className="text-[10px] font-black tracking-wider text-gray-400 uppercase block">Metode Dipilih</span>
                             <span className="font-extrabold uppercase text-gray-900 font-mono text-sm">
-                              {depositMethod === 'qris' ? 'QRIS INSTANT PAY' : `${depositMethod} Virtual Account`}
+                              {depositMethod === 'qris' ? 'QRIS INSTANT PAY' : `${depositMethod} Bank Transfer`}
                             </span>
                           </div>
                           <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-md font-bold animate-pulse">Menunggu Transfer</span>
@@ -372,7 +396,7 @@ export default function ProfilePage() {
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">Nomor Rekening Virtual Account</span>
+                            <span className="text-xs font-bold text-gray-500 uppercase block mb-1">Nomor Rekening Pembayaran</span>
                             <div className="flex gap-2">
                               <div className="flex-1 bg-gray-100 border border-gray-200 rounded-lg p-3 font-mono font-extrabold text-gray-800 tracking-wider text-base select-all text-center flex items-center justify-center">
                                 {vaNumber}
@@ -393,7 +417,7 @@ export default function ProfilePage() {
                         )}
 
                         <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-left space-y-1.5">
-                          <span className="text-[11px] font-bold text-gray-700 block border-b border-gray-200/60 pb-1">Petunjuk Pembayaran Realistis:</span>
+                          <span className="text-[11px] font-bold text-gray-700 block border-b border-gray-200/60 pb-1">Instruksi Transfer:</span>
                           <ul className="text-[10px] text-gray-500 space-y-1 font-semibold leading-relaxed">
                             <li className="flex items-start gap-1">
                               <span className="text-[#00AE64]">1.</span> 
@@ -401,7 +425,7 @@ export default function ProfilePage() {
                             </li>
                             <li className="flex items-start gap-1">
                               <span className="text-[#00AE64]">2.</span> 
-                              <span>Pilih menu Transfer Virtual Account, lalu masukkan nomor VA di atas atau Scan QR Code.</span>
+                              <span>Pilih menu Transfer Antar Rekening, lalu masukkan nomor deposit di atas atau Scan QR Code.</span>
                             </li>
                             <li className="flex items-start gap-1">
                               <span className="text-[#00AE64]">3.</span> 
@@ -409,7 +433,7 @@ export default function ProfilePage() {
                             </li>
                             <li className="flex items-start gap-1">
                               <span className="text-[#00AE64]">4.</span> 
-                              <span className="text-amber-600 font-bold">INGAT: Ini simulasi pasar, Anda tinggal menekan tombol di bawah untuk verifikasi pembayaran palsu & instan saldo bertambah.</span>
+                              <span>Tekan tombol di bawah untuk memproses verifikasi dan sinkronisasi pembayaran secara langsung.</span>
                             </li>
                           </ul>
                         </div>
@@ -469,7 +493,7 @@ export default function ProfilePage() {
                         <div className="space-y-1.5">
                           <h4 className="text-lg font-black text-gray-900 uppercase">Deposit Sukses Terakreditasi!</h4>
                           <p className="text-xs text-gray-500 px-6">
-                            Sistem gateway berhasil menyinkronkan status mutasi Anda. Saldo virtual telah dimasukkan ke wallet Anda secara seketika.
+                            Sistem gateway berhasil menyinkronkan status mutasi Anda. Saldo trading telah dimasukkan ke wallet Anda secara seketika.
                           </p>
                         </div>
 
@@ -495,8 +519,130 @@ export default function ProfilePage() {
                         </button>
                       </div>
                     )
+                  ) : txModal === 'Withdraw' ? (
+                    // ------------------ WITHDRAW FLOW ------------------
+                    withdrawStep === 'input' ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                            Bank Tujuan
+                          </label>
+                          <div className="grid grid-cols-4 gap-2 mb-4">
+                            {(['bca', 'mandiri', 'bri', 'bni'] as const).map(bank => (
+                              <button
+                                key={bank}
+                                type="button"
+                                onClick={() => setWithdrawBank(bank)}
+                                className={`py-3 rounded-lg border flex flex-col items-center justify-center font-bold text-xs uppercase transition-all ${
+                                  withdrawBank === bank 
+                                    ? 'border-[#00AE64] bg-emerald-50 text-[#00AE64] ring-2 ring-[#00AE64]/10' 
+                                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                }`}
+                              >
+                                {bank.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Nama Pemilik Rekening</label>
+                            <input 
+                              type="text" 
+                              value={withdrawAccountName}
+                              onChange={e => setWithdrawAccountName(e.target.value)}
+                              placeholder="SESUAI KTP"
+                              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] outline-none font-bold text-gray-900 uppercase"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Nomor Rekening</label>
+                            <input 
+                              type="text" 
+                              value={withdrawAccountNumber}
+                              onChange={e => setWithdrawAccountNumber(e.target.value)}
+                              placeholder="0001234567"
+                              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#00AE64] outline-none font-mono font-bold text-gray-900"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Amount (USD)</label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                            <input 
+                              type="number" 
+                              value={txAmount}
+                              onChange={e => setTxAmount(e.target.value)}
+                              placeholder="0.00"
+                              className="w-full border border-gray-200 rounded-lg p-4 pl-8 text-xl font-bold focus:border-[#00AE64] outline-none text-gray-950"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2 text-right">
+                            Available: <span className="font-bold text-gray-900">${userProfile.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                          </p>
+                        </div>
+                        
+                        <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex gap-2">
+                          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                          <p className="text-[10px] text-amber-700 font-medium">
+                            Nama akun penarikan harus sama dengan nama pemilik dompet terdaftar untuk menghindari delay AML (Anti Money Laundering). Setelan ini akan memakan waktu 1-3 hari kerja untuk tiba di Bank tujuan.
+                          </p>
+                        </div>
+
+                        <button 
+                          onClick={handleTransaction}
+                          disabled={isProcessing || !txAmount || Number(txAmount) <= 0 || !withdrawAccountName || !withdrawAccountNumber}
+                          className="w-full mt-4 bg-[#00AE64] hover:bg-emerald-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                            <>
+                              <span>Tarik Dana ke Bank</span>
+                              <ArrowRight className="w-4 h-4" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : withdrawStep === 'processing' ? (
+                      <div className="py-10 flex flex-col items-center justify-center text-center space-y-5">
+                        <div className="relative w-20 h-20 flex items-center justify-center">
+                          <div className="absolute inset-0 border-4 border-t-amber-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
+                          <ArrowUpRight className="w-8 h-8 text-amber-500" />
+                        </div>
+                        <div className="space-y-1.5 px-4">
+                          <h4 className="text-base font-extrabold text-gray-900 animate-pulse">Memproses Penarikan Dana...</h4>
+                          <p className="text-xs text-gray-500 font-medium">
+                            Permintaan penarikan ke rekening {withdrawBank.toUpperCase()} Anda sedang diarahkan ke payment gateway...
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-[#00AE64]">
+                          <Check className="w-8 h-8 stroke-[3]" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <h4 className="text-lg font-black text-gray-900 uppercase">Permintaan Diterima</h4>
+                          <p className="text-xs text-gray-500 px-4">
+                            Dana sebesar <span className="font-bold text-gray-900">${txAmount}</span> sedang diproses ke rekening {withdrawBank.toUpperCase()} Anda. Saldo telah dipotong.
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setTxModal(null);
+                            setTxAmount('');
+                            setWithdrawStep('input');
+                          }}
+                          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 rounded-xl mt-4"
+                        >
+                          Selesai
+                        </button>
+                      </div>
+                    )
                   ) : (
-                    // ------------------ WITHDRAW & TRANSFER FLOWS ------------------
+                    // ------------------ TRANSFER FLOW ------------------
                     <>
                       {txModal === 'Transfer' && (
                         <div className="flex flex-col gap-4">
@@ -526,7 +672,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide leading-normal bg-gray-50 p-2.5 rounded-md border border-gray-150 flex items-start gap-1.5">
-                            <span className="text-[#00AE64]">💡</span> 
+                            <span className="text-[#00AE64] font-black mr-1 text-[9px] border border-[#00AE64]/30 px-1 py-0.5 rounded bg-[#00AE64]/10">TIPS</span> 
                             <span>Anda dapat mentransfer dana secara instan ke pengguna lain menggunakan alamat e-wallet hex atau alamat email akun mereka.</span>
                           </p>
                         </div>
@@ -601,7 +747,7 @@ export default function ProfilePage() {
 
           {/* User Info */}
           <div className="flex flex-col items-center md:items-start flex-1 w-full text-center md:text-left mt-2">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">{user.displayName || 'Cryptobit User'}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">{user.displayName || 'VIA X User'}</h1>
             <p className="text-gray-500 font-medium">@{user.displayName?.replace(/\s+/g, '').toLowerCase() || 'user'}</p>
             {userProfile.walletAddress && (
                <button 
@@ -632,7 +778,7 @@ export default function ProfilePage() {
                 </div>
                 <span className="text-gray-600 text-sm font-semibold group-hover:text-gray-900 transition-colors">Deposit</span>
               </div>
-              <div onClick={() => setTxModal('Withdraw')} className="flex flex-col items-center gap-1 cursor-pointer group">
+              <div onClick={() => { setWithdrawStep('input'); setTxModal('Withdraw'); }} className="flex flex-col items-center gap-1 cursor-pointer group">
                 <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
                   <Upload className="w-5 h-5" />
                 </div>

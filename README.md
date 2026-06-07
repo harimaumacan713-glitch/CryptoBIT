@@ -1,4 +1,4 @@
-# CryptoBit Exchange
+# VIA X Exchange
 
 Full-stack cryptocurrency exchange platform built with React, Tailwind CSS, and Firebase. Featuring real-time price tracking via Binance WebSocket API and a built-in Launchpad for Crypto IPOs.
 
