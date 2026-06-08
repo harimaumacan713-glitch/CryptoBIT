@@ -75,52 +75,66 @@ const initialCrypto: CryptoData[] = [
 
 export default function TrendingStocks() {
   const { realTimeCryptos } = useFirebase();
-  const cryptos = realTimeCryptos;
+  // Limit to top 4 prominent coins for clean single-row UI (no wrapping)
+  const cryptos = realTimeCryptos.slice(0, 4);
 
   return (
-    <div className="py-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] font-black text-white bg-[#00AE64] px-2.5 py-0.5 rounded-sm uppercase tracking-wider">Top Cryptos</span>
-        <span className="text-[9px] font-bold text-[#00AE64] tracking-widest">LIVE VOLATILITY</span>
+    <div className="py-3">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className="text-[9px] font-black text-white bg-[#00AE64] px-2 py-0.5 rounded-sm uppercase tracking-wider">Top Cryptos</span>
+        <span className="text-[9px] font-bold text-[#00AE64] tracking-widest uppercase">Live Volatility</span>
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-7 gap-0 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
-        {cryptos.map((crypto, index) => (
-          <div key={crypto.id} className={`p-3 ${index !== cryptos.length - 1 ? 'border-r border-slate-100' : ''} hover:bg-slate-50 transition-colors cursor-pointer group`}>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 flex items-center justify-center shrink-0">
-                  <img src={crypto.logo} alt={crypto.symbol} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-0 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
+        {cryptos.map((crypto, index) => {
+          // Responsive borders to ensure no dangling border on the last visible column
+          const borderClass = 
+            index === 0 || index === 1
+              ? 'border-r border-slate-100'
+              : index === 2
+                ? 'border-r-0 sm:border-r border-slate-100'
+                : ''; // index === 3 has no border-r
+
+          return (
+            <div 
+              key={crypto.id} 
+              className={`p-2.5 ${borderClass} ${index === 3 ? 'hidden sm:block' : ''} hover:bg-slate-50 transition-colors cursor-pointer group`}
+            >
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4.5 h-4.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 flex items-center justify-center shrink-0">
+                    <img src={crypto.logo} alt={crypto.symbol} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-extrabold text-[10px] text-slate-800 leading-none uppercase tracking-tight group-hover:text-[#00AE64] transition-colors">{crypto.symbol}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-extrabold text-[10px] text-slate-800 leading-none uppercase tracking-tight group-hover:text-[#00AE64] transition-colors">{crypto.symbol}</span>
+                <div>
+                  <div className={`text-[10.5px] font-bold leading-none ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-rose-600'} font-mono`}>
+                    ${crypto.price < 1 ? crypto.price.toFixed(4) : crypto.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className={`text-[9px] font-bold mt-0.5 ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-rose-600'} flex items-center gap-0.5`}>
+                    <span>{crypto.changePercent.toFixed(2)}%</span>
+                  </div>
                 </div>
-              </div>
-              <div>
-                 <div className={`text-[11px] font-bold leading-none ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-rose-600'} font-mono`}>
-                  ${crypto.price < 1 ? crypto.price.toFixed(4) : crypto.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="h-4.5 w-full opacity-85">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={crypto.sparkline}>
+                      <YAxis domain={['dataMin', 'dataMax']} hide />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        stroke={crypto.change >= 0 ? '#00AE64' : '#e11d48'} 
+                        strokeWidth={1.5} 
+                        dot={false} 
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className={`text-[9px] font-bold mt-0.5 ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-rose-600'} flex items-center gap-0.5`}>
-                  <span>{crypto.changePercent.toFixed(2)}%</span>
-                </div>
-              </div>
-              <div className="h-5 w-full opacity-85">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={crypto.sparkline}>
-                    <YAxis domain={['dataMin', 'dataMax']} hide />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke={crypto.change >= 0 ? '#00AE64' : '#e11d48'} 
-                      strokeWidth={1.5} 
-                      dot={false} 
-                      isAnimationActive={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

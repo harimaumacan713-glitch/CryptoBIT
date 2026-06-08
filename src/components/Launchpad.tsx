@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doc, updateDoc } from 'firebase/firestore';
+import VerificationModal from './VerificationModal';
 
 export default function Launchpad({ onComplete }: { onComplete: () => void }) {
   const { createCoin, user, login, clearAllUserCoins, userProfile, updateBalance, db, verifyUser } = useFirebase();
@@ -38,6 +39,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [launchMode, setLaunchMode] = useState<'IPO' | 'DIRECT'>('IPO');
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   
   // KYC simulated state
   const [kycForm, setKycForm] = useState({
@@ -50,8 +52,6 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
   });
   const [kycIsSubmitting, setKycIsSubmitting] = useState(false);
   const [kycStepText, setKycStepText] = useState("Kirim & Setujui Verifikasi KYC");
-  const [grantClaimed, setGrantClaimed] = useState(false);
-  const [grantLoading, setGrantLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const triggerToast = (type: 'success' | 'error', message: string) => {
@@ -176,20 +176,6 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
     }
   };
 
-  const handleClaimGrant = async () => {
-    if (!user) return;
-    setGrantLoading(true);
-    try {
-      await updateBalance(2000000); // Give 2,000,000 USD capital
-      setGrantClaimed(true);
-      triggerToast('success', "Aset Pendanaan Pengembang sebesar $2,000,000 USD berhasil dikreditkan ke wallet Anda!");
-    } catch (err: any) {
-      triggerToast('error', "Klaim pendanaan gagal: " + err.message);
-    } finally {
-      setGrantLoading(false);
-    }
-  };
-
   const handleSubmit = async () => {
     if (formData.liquidity < 10) {
       triggerToast('error', "Deposit Likuiditas Minimum adalah $10 USD!");
@@ -232,15 +218,15 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 md:p-20 bg-[#121622] border border-slate-800 rounded-xl shadow-2xl mt-6 max-w-xl mx-auto text-center animate-fadeIn">
-        <div className="w-16 h-16 bg-[#00AE64]/10 rounded-full flex items-center justify-center mb-6 border border-slate-800">
+      <div className="flex flex-col items-center justify-center p-12 md:p-20 bg-white border border-slate-200 rounded-xl shadow-sm mt-6 max-w-xl mx-auto text-center animate-fadeIn">
+        <div className="w-16 h-16 bg-[#00AE64]/10 rounded-full flex items-center justify-center mb-6 border border-slate-200">
           <Rocket className="w-8 h-8 text-[#00AE64] animate-pulse" />
         </div>
-        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">Siap Luncurkan Koin Anda Sendiri?</h2>
-        <p className="text-slate-400 text-sm mt-3 mb-8 max-w-sm font-semibold">Dapatkan akses instan untuk meluncurkan token baru dan menjangkau ribuan investor aktif dalam hitungan menit.</p>
+        <h2 className="text-xl md:text-2xl font-black text-slate-850 tracking-tight">Siap Luncurkan Koin Anda Sendiri?</h2>
+        <p className="text-slate-500 text-sm mt-3 mb-8 max-w-sm font-semibold">Dapatkan akses instan untuk meluncurkan token baru dan menjangkau ribuan investor aktif dalam hitungan menit.</p>
         <button 
           onClick={login}
-          className="w-full bg-[#00AE64] hover:bg-[#009656] text-white font-black py-4 px-8 rounded-lg shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+          className="w-full bg-[#00AE64] hover:bg-[#009656] text-white font-black py-4 px-8 rounded-lg shadow-sm hover:shadow-emerald-550/10 transition-all cursor-pointer flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
         >
           Masuk dengan Google
         </button>
@@ -250,21 +236,18 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="max-w-4xl mx-auto mt-6">
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
          <div>
             <div className="flex items-center gap-2">
               <span className="bg-[#00AE64]/10 text-[#00AE64] text-[10px] tracking-widest font-black uppercase px-2 py-0.5 rounded border border-[#00AE64]/20">WEB3 AMM CONTRACT</span>
-              <span className="text-[10px] text-emerald-400 bg-emerald-950/45 px-2 py-0.5 rounded font-bold flex items-center gap-1 border border-emerald-500/20">
-                <ShieldCheck className="w-3 h-3" /> KYC Verified
-              </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white mt-1">VIA X LAUNCHPAD</h1>
-            <p className="text-slate-400 text-xs md:text-sm mt-0.5 font-semibold">Terbitkan koin kustom Anda sendiri pada AMM Pool secara profesional tanpa kode pemrograman.</p>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-850 mt-1">VIA X LAUNCHPAD</h1>
+            <p className="text-slate-500 text-xs md:text-sm mt-0.5 font-semibold">Terbitkan koin kustom Anda sendiri pada AMM Pool secara profesional tanpa kode pemrograman.</p>
          </div>
          <button
            disabled={isClearing}
            onClick={handleClearAll}
-           className="shrink-0 bg-rose-950/20 hover:bg-[#230f1d] text-rose-400 border border-rose-900/40 font-black text-xs px-3.5 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 uppercase tracking-wider"
+           className="shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-extrabold text-xs px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 uppercase tracking-wider"
          >
            {isClearing ? (
              <>
@@ -280,14 +263,14 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
          </button>
       </div>
 
-      <div className="bg-[#121622] border border-slate-800 rounded-xl shadow-2xl overflow-hidden mb-12">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-12">
         {/* Progress Bar */}
-        <div className="flex border-b border-slate-800 bg-[#0c101b]/50">
+        <div className="flex border-b border-slate-200 bg-slate-50/50">
           {[1, 2, 3].map((s) => (
-             <div key={s} className={`flex-1 py-4 px-3 text-center border-r last:border-0 border-slate-800 transition-colors ${step >= s ? 'bg-[#00AE64]/5 relative' : 'bg-[#121622]/40 grayscale'}`}>
+             <div key={s} className={`flex-1 py-4 px-3 text-center border-r last:border-0 border-slate-200 transition-colors ${step >= s ? 'bg-[#00AE64]/5 relative' : 'bg-slate-50/50 grayscale'}`}>
                 {step === s && <motion.div layoutId="step-highlight" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00AE64]" />}
-                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 ${step >= s ? 'text-[#00AE64]' : 'text-slate-500'}`}>
-                  <span className={`w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center ${step >= s ? 'bg-[#00AE64] text-white' : 'bg-slate-800 text-slate-500'}`}>{s}</span>
+                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 ${step >= s ? 'text-[#00AE64]' : 'text-slate-400'}`}>
+                  <span className={`w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center ${step >= s ? 'bg-[#00AE64] text-white' : 'bg-slate-200 text-slate-400'}`}>{s}</span>
                   <span className="hidden sm:inline">{s === 1 ? 'Detail Token' : s === 2 ? 'Pengaturan Listing' : 'Luncurkan'}</span>
                   <span className="sm:hidden">{s === 1 ? 'Detail' : s === 2 ? 'Listing' : 'Selesai'}</span>
                 </span>
@@ -295,7 +278,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
           ))}
         </div>
 
-        <div className="p-6 md:p-8">
+        <div className="p-6 md:p-8 bg-white">
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div 
@@ -305,87 +288,59 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                   exit={{ opacity: 0, x: -15 }}
                   className="space-y-6"
                 >
-                  {/* Dynamic Creator Grant notification for low balance creators */}
-                  {userProfile && userProfile.balance < 1000000 && (
-                    <motion.div 
-                      initial={{ scale: 0.98, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="bg-amber-950/45 border border-amber-500/25 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-200"
-                    >
-                      <div className="flex gap-2.5 items-start">
-                        <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-wider text-amber-300 font-sans">Daftar Likuiditas Pengembang Kurang!</p>
-                          <p className="text-[11px] text-amber-400/90 font-semibold leading-relaxed mt-0.5">
-                            Saldo Anda saat ini adalah <strong>${(userProfile.balance || 0).toLocaleString()}</strong>. Anda memerlukan minimal <strong>$1,000,000 USD</strong> liquidity untuk meluncurkan pasar bursa koin baru.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleClaimGrant}
-                        disabled={grantLoading}
-                        className="bg-amber-500 hover:bg-amber-600 text-neutral-950 font-black text-[10px] py-2 px-4 rounded-lg shadow-sm hover:shadow transition-all shrink-0 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 uppercase tracking-wider"
-                      >
-                        <Wallet className="w-3.5 h-3.5" />
-                        {grantLoading ? "Memproses..." : "Klaim Hibah $2M"}
-                      </button>
-                    </motion.div>
-                  )}
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Nama Token (Token Name)</label>
-                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Contoh: MetaChain Gold" className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none text-white transition-all font-semibold placeholder:text-slate-600" required />
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Nama Token (Token Name)</label>
+                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Contoh: MetaChain Gold" className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none text-slate-800 transition-all font-semibold placeholder:text-slate-400" required />
                      </div>
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Simbol Koin (Ticker Symbol)</label>
-                        <input name="symbol" value={formData.symbol} onChange={handleChange} placeholder="Contoh: MCG" className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none text-white transition-all font-black uppercase tracking-wider placeholder:text-slate-600" required />
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Simbol Koin (Ticker Symbol)</label>
+                        <input name="symbol" value={formData.symbol} onChange={handleChange} placeholder="Contoh: MCG" className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none text-slate-800 transition-all font-black uppercase tracking-wider placeholder:text-slate-400" required />
                      </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center justify-between font-sans">
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center justify-between font-sans">
                           Total Pasokan
-                          <Coins className="w-3.5 h-3.5 text-slate-500" />
+                          <Coins className="w-3.5 h-3.5 text-slate-400" />
                         </label>
-                        <input type="number" name="totalSupply" value={formData.totalSupply} onChange={handleChange} className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none font-bold font-mono text-white transition-all" required />
+                        <input type="number" name="totalSupply" value={formData.totalSupply} onChange={handleChange} className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none font-bold font-mono text-slate-800 transition-all" required />
                      </div>
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center justify-between font-sans">
+                        <label className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center justify-between font-sans">
                           Sirkulasi Publik (60%)
                           <Percent className="w-3.5 h-3.5 text-[#00AE64]" />
                         </label>
-                        <input type="number" name="circulatingSupply" value={formData.circulatingSupply} onChange={handleChange} className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none font-bold font-mono text-[#00AE64] transition-all" required />
+                        <input type="number" name="circulatingSupply" value={formData.circulatingSupply} onChange={handleChange} className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none font-bold font-mono text-[#00AE64] transition-all" required />
                      </div>
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center justify-between font-sans">
+                        <label className="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center justify-between font-sans">
                           Founder Lock (40%)
-                          <Lock className="w-3.5 h-3.5 text-indigo-500" />
+                          <Lock className="w-3.5 h-3.5 text-indigo-550" />
                         </label>
-                        <input type="number" name="lockSupplyCreator" value={formData.lockSupplyCreator} disabled className="w-full border border-slate-800 rounded-lg bg-[#090b14] p-3 text-sm text-indigo-400 font-bold font-mono cursor-not-allowed" />
+                        <input type="number" name="lockSupplyCreator" value={formData.lockSupplyCreator} disabled className="w-full border border-slate-200 rounded-lg bg-indigo-50/30 p-3 text-sm text-indigo-600 font-bold font-mono cursor-not-allowed" />
                      </div>
                   </div>
 
                   <div className="space-y-1.5">
-                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">URL Logo Koin (Kosongkan untuk otomatis)</label>
-                     <input name="logo" value={formData.logo} onChange={handleChange} placeholder="https://domain.com/logo.png" className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none text-white transition-all font-semibold placeholder:text-slate-600" />
+                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">URL Logo Koin (Kosongkan untuk otomatis)</label>
+                     <input name="logo" value={formData.logo} onChange={handleChange} placeholder="https://domain.com/logo.png" className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none text-slate-800 transition-all font-semibold placeholder:text-slate-400" />
                   </div>
 
                   <div className="space-y-1.5">
-                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Deskripsi Proyek (Project Vision)</label>
-                     <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Jelaskan mengenai visi, kegunaan utilitas, dan roadmap pengembangan koin kustom Anda secara ringkas..." className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none text-white transition-all resize-none font-semibold leading-relaxed placeholder:text-slate-600" required />
+                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Deskripsi Proyek (Project Vision)</label>
+                     <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Jelaskan mengenai visi, kegunaan utilitas, dan roadmap pengembangan koin kustom Anda secara ringkas..." className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none text-slate-800 transition-all resize-none font-semibold leading-relaxed placeholder:text-slate-400" required />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                      <div className="relative">
-                       <Globe className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
-                       <input name="website" value={formData.website} onChange={handleChange} placeholder="Situs Web Resmi (Website URL)" className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 pl-10 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none text-white font-semibold transition-all placeholder:text-slate-600" required />
+                       <Globe className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                       <input name="website" value={formData.website} onChange={handleChange} placeholder="Situs Web Resmi (Website URL)" className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 pl-10 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none text-slate-800 font-semibold transition-all placeholder:text-slate-400" required />
                      </div>
                      <div className="relative">
-                       <Twitter className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
-                       <input name="twitter" value={formData.twitter} onChange={handleChange} placeholder="Akun Twitter / X Link" className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 pl-10 text-sm focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none text-white font-semibold transition-all placeholder:text-slate-600" />
+                       <Twitter className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                       <input name="twitter" value={formData.twitter} onChange={handleChange} placeholder="Akun Twitter / X Link" className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 pl-10 text-sm focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none text-slate-800 font-semibold transition-all placeholder:text-slate-400" />
                      </div>
                   </div>
 
@@ -399,7 +354,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                         }
                         setStep(2);
                       }}
-                      className="w-full bg-[#00AE64] hover:bg-[#009656] text-white font-black py-4 px-6 rounded-lg shadow-lg hover:shadow-emerald-500/10 transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-widest"
+                      className="w-full bg-[#00AE64] hover:bg-[#009656] text-white font-black py-4 px-6 rounded-lg shadow-sm hover:shadow-emerald-500/10 transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-widest"
                      >
                        Lanjut ke Pengaturan Listing <ArrowRight className="w-4 h-4" />
                      </button>
@@ -416,21 +371,21 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                   className="space-y-6"
                 >
                   {/* Launch Mode Selection */}
-                  <div className="space-y-1.5 p-4 bg-[#0c101b] border border-slate-800 rounded-xl">
-                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Pilih Model Peluncuran Koin (Launch Mode)</label>
+                  <div className="space-y-1.5 p-4 bg-slate-50/55 border border-slate-200 rounded-xl">
+                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Pilih Model Peluncuran Koin (Launch Mode)</label>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                         <button
                           type="button"
                           onClick={() => setLaunchMode('IPO')}
                           className={`p-3 rounded-lg border text-left font-bold transition-all flex flex-col justify-between cursor-pointer ${
                             launchMode === 'IPO' 
-                              ? 'bg-[#00AE64]/10 border-[#00AE64] text-white' 
-                              : 'bg-[#121622] border-slate-800 text-slate-500 hover:border-slate-700'
+                              ? 'bg-emerald-50 border-[#00AE64] text-emerald-800 shadow-sm' 
+                              : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                            <div>
                               <span className="font-extrabold text-[#00AE64] text-xs uppercase tracking-wider block">1. Open Crowdfund IPO</span>
-                              <p className="text-[10px] text-slate-400 font-semibold normal-case mt-1.5 leading-relaxed">
+                              <p className={`text-[10px] font-semibold normal-case mt-1.5 leading-relaxed ${launchMode === 'IPO' ? 'text-emerald-700/90' : 'text-slate-400'}`}>
                                 Buka masa pre-order dan crowdfunding IPO sebelum masuk bursa utama.
                               </p>
                            </div>
@@ -440,13 +395,13 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                           onClick={() => setLaunchMode('DIRECT')}
                           className={`p-3 rounded-lg border text-left font-bold transition-all flex flex-col justify-between cursor-pointer ${
                             launchMode === 'DIRECT' 
-                              ? 'bg-[#00AE64]/10 border-[#00AE64] text-white' 
-                              : 'bg-[#121622] border-slate-800 text-slate-500 hover:border-slate-700'
+                              ? 'bg-[#00AE64]/5 border-[#00AE64] text-emerald-800 shadow-sm' 
+                              : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                            <div>
-                              <span className="font-extrabold text-blue-400 text-xs uppercase tracking-wider block">2. Direct Listing (Instan)</span>
-                              <p className="text-[10px] text-slate-400 font-semibold normal-case mt-1.5 leading-relaxed">
+                              <span className="font-extrabold text-blue-600 text-xs uppercase tracking-wider block">2. Direct Listing (Instan)</span>
+                              <p className={`text-[10px] font-semibold normal-case mt-1.5 leading-relaxed ${launchMode === 'DIRECT' ? 'text-emerald-700/90' : 'text-slate-400'}`}>
                                 Lewati pre-order! Koin akan langsung terdaftar di bursa AMM untuk transaksi jual/beli.
                               </p>
                            </div>
@@ -456,34 +411,34 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Harga Perdana IPO (Harga Awal dalam USD)</label>
-                        <input type="number" step="0.001" name="initialPrice" value={formData.initialPrice} onChange={handleChange} className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm font-bold font-mono text-white focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none transition-all placeholder:text-slate-600" required />
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Harga Perdana IPO (Harga Awal dalam USD)</label>
+                        <input type="number" step="0.001" name="initialPrice" value={formData.initialPrice} onChange={handleChange} className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm font-bold font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none transition-all placeholder:text-slate-400" required />
                      </div>
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center justify-between font-sans">
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center justify-between font-sans">
                           Tanggal Selesai Penawaran / Listing IPO
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
                         </label>
-                        <input type="datetime-local" name="listingDate" value={formData.listingDate} onChange={handleChange} className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm font-bold font-mono text-white focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none transition-all" required />
+                        <input type="datetime-local" name="listingDate" value={formData.listingDate} onChange={handleChange} className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm font-bold font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none transition-all" required />
                      </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Batas Minimum Pembelian User (Token {formData.symbol || 'MCG'})</label>
-                        <input type="number" name="minBuy" value={formData.minBuy} onChange={handleChange} className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm font-bold font-mono text-white focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none transition-all placeholder:text-slate-600" />
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Batas Minimum Pembelian User (Token {formData.symbol || 'MCG'})</label>
+                        <input type="number" name="minBuy" value={formData.minBuy} onChange={handleChange} className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm font-bold font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none transition-all placeholder:text-slate-400" />
                      </div>
                      <div className="space-y-1.5">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">Batas Maksimum Pembelian User (Token {formData.symbol || 'MCG'})</label>
-                        <input type="number" name="maxBuy" value={formData.maxBuy} onChange={handleChange} className="w-full border border-slate-800 rounded-lg bg-[#0c101b] p-3 text-sm font-bold font-mono text-white focus:bg-[#0e1424] focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none transition-all placeholder:text-slate-600" />
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest block font-sans">Batas Maksimum Pembelian User (Token {formData.symbol || 'MCG'})</label>
+                        <input type="number" name="maxBuy" value={formData.maxBuy} onChange={handleChange} className="w-full border border-slate-200 rounded-lg bg-slate-50/55 p-3 text-sm font-bold font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-[#00AE64]/10 focus:border-[#00AE64] outline-none transition-all placeholder:text-slate-400" />
                      </div>
                   </div>
 
-                  <div className="space-y-2 bg-[#0c101b] text-white rounded-xl p-5 md:p-6 border border-slate-800">
+                  <div className="space-y-2 bg-emerald-50/30 text-slate-800 rounded-xl p-5 md:p-6 border border-slate-200">
                      <label className="text-xs font-black text-[#00AE64] uppercase flex items-center gap-1.5 mb-1 tracking-widest font-sans">
-                        <Wallet className="w-4 h-4 text-emerald-400" /> JAMINAN LIKUIDITAS POOL DISPERSAL (AMM POOL)
+                        <Wallet className="w-4 h-4 text-emerald-500" /> JAMINAN LIKUIDITAS POOL DISPERSAL (AMM POOL)
                      </label>
-                     <p className="text-[11px] text-slate-400 mb-4 leading-relaxed font-semibold">
+                     <p className="text-[11px] text-slate-500 mb-4 leading-relaxed font-semibold">
                        Sistem secara wajib mempersiapkan Pool Likuiditas USD yang dipasangkan ke koin Anda pada pasar bursa AMM untuk menjamin likuiditas instan beli/jual dan memitigasi fluktuasi liar sesaat setelah terdaftar.
                      </p>
                      
@@ -491,25 +446,25 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                         <input 
                            type="number" 
                            name="liquidity" 
-                           min={1000000}
+                           min={10}
                            value={formData.liquidity} 
                            onChange={handleChange} 
-                           className="w-full bg-[#121622] border border-slate-800 rounded-lg p-3.5 pl-4 pr-16 text-xl font-bold font-mono text-white focus:outline-none focus:border-[#00AE64] transition-colors" 
+                           className="w-full bg-white border border-slate-200 rounded-lg p-3.5 pl-4 pr-16 text-xl font-bold font-mono text-slate-800 focus:outline-none focus:border-[#00AE64] transition-colors" 
                            required
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500 uppercase">USD</span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 uppercase">USD</span>
                      </div>
                      <div className="flex flex-col sm:flex-row justify-between text-[11px] text-slate-500 mt-3 font-semibold gap-1">
-                        <span>Batas Minimum yang Diwajibkan: $1,000,000 USD</span>
+                        <span>Deposit Likuiditas Minimum: $10 USD</span>
                         <span className="text-[#00AE64] font-bold">Token Likuiditas Pasar: {(formData.liquidity / (formData.initialPrice || 0.1)).toLocaleString(undefined, { maximumFractionDigits: 0 })} Token AMM</span>
                      </div>
                   </div>
 
-                  <div className="bg-sky-950/25 border border-sky-500/20 p-4 rounded-xl flex gap-3 text-sky-200">
-                     <ShieldCheck className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
+                  <div className="bg-sky-50 border border-sky-100 p-4 rounded-xl flex gap-3 text-sky-800">
+                     <ShieldCheck className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
                      <div>
-                       <p className="text-xs font-black uppercase tracking-widest text-sky-300 font-sans">VERIFIKASI PROSES LISTING OTOMATIS</p>
-                       <p className="text-[11px] mt-1 leading-relaxed text-sky-450 font-semibold">
+                       <p className="text-xs font-black uppercase tracking-widest text-sky-950 font-sans">VERIFIKASI PROSES LISTING OTOMATIS</p>
+                       <p className="text-[11px] mt-1 leading-relaxed text-sky-700/95 font-semibold">
                          Koin kustom yang Anda rilis akan tercatat otomatis di bursa IPO CENTER dalam status UPCOMING/LIVE. Perdagangan pasar bebas akan otomatis dibuka jika waktu penawaran habis atau target pengumpulan dana (hardcap) terpenuhi.
                        </p>
                      </div>
@@ -519,7 +474,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                      <button
                        type="button" 
                        onClick={() => setStep(1)}
-                       className="flex-1 border border-slate-800 text-slate-400 font-extrabold py-3.5 px-6 rounded-lg hover:bg-slate-900 transition-all cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 bg-[#0c101b]"
+                       className="flex-1 border border-slate-200 text-slate-600 font-extrabold py-3.5 px-6 rounded-lg hover:bg-slate-50 transition-all cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 bg-white"
                      >
                        <ArrowLeft className="w-3.5 h-3.5" /> Kembali
                      </button>
@@ -527,7 +482,7 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                        type="button" 
                        onClick={handleSubmit}
                        disabled={isSubmitting}
-                       className="flex-[2] bg-[#00AE64] text-white font-black py-3.5 px-6 rounded-lg hover:bg-[#009656] shadow-lg hover:shadow-emerald-500/15 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-xs uppercase tracking-widest cursor-pointer mt-0"
+                       className="flex-[2] bg-[#00AE64] text-white font-black py-3.5 px-6 rounded-lg hover:bg-[#009656] shadow-sm hover:shadow-emerald-500/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-xs uppercase tracking-widest cursor-pointer mt-0"
                      >
                        {isSubmitting ? (
                          <>
@@ -551,14 +506,14 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
                   <div className="w-16 h-16 bg-[#00AE64]/10 rounded-full flex items-center justify-center mb-5 border border-emerald-500/20">
                      <CheckCircle className="w-10 h-10 text-[#00AE64]" />
                   </div>
-                  <h2 className="text-2xl font-black text-white tracking-tight">Koin Berhasil Diluncurkan!</h2>
-                  <p className="text-sm text-slate-400 mt-2 max-w-md leading-relaxed font-semibold">
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Koin Berhasil Diluncurkan!</h2>
+                  <p className="text-sm text-slate-500 mt-2 max-w-md leading-relaxed font-semibold">
                     Selamat! Koin kustom pengembang <strong>{formData.name} ({formData.symbol.toUpperCase()})</strong> telah diinisialisasi jaminan likuiditasnya dan sekarang resmi didaftarkan di portal IPO Center!
                   </p>
                   <button 
                    type="button"
                    onClick={onComplete}
-                   className="mt-8 bg-[#00AE64] hover:bg-[#009656] text-white font-black py-4 px-8 rounded-lg shadow-lg hover:shadow-emerald-500/15 transition-all text-xs uppercase tracking-widest cursor-pointer flex items-center gap-1.5"
+                   className="mt-8 bg-[#00AE64] hover:bg-[#009656] text-white font-black py-4 px-8 rounded-lg shadow-sm hover:shadow-emerald-500/10 transition-all text-xs uppercase tracking-widest cursor-pointer flex items-center gap-1.5"
                   >
                     Buka Dashboard IPO CENTER <ArrowRight className="w-4 h-4" />
                   </button>
@@ -574,14 +529,14 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`fixed bottom-6 left-1/2 -translate-x-1/2 min-w-[280px] max-w-[90%] px-4 py-3 rounded-xl shadow-2xl border text-xs font-bold z-[9999] flex items-center gap-2.5 ${
+            className={`fixed bottom-6 left-1/2 -translate-x-1/2 min-w-[280px] max-w-[90%] px-4 py-3 rounded-xl shadow-lg border text-xs font-bold z-[9999] flex items-center gap-2.5 ${
               toast.type === 'success' 
-                ? 'bg-[#0c101b] border-emerald-500/20 text-emerald-400' 
-                : 'bg-[#0c101b] border-rose-500/20 text-rose-400'
+                ? 'bg-white border-emerald-200 text-emerald-850' 
+                : 'bg-white border-rose-200 text-rose-850'
             }`}
           >
             <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            <span className="flex-1 leading-normal">{toast.message}</span>
+            <span className="flex-1 leading-normal text-slate-780">{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>

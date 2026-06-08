@@ -645,16 +645,18 @@ export default function Feed() {
                             <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wide ml-1">{post.timestamp}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button 
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                await handleDeletePost(post.id, isCurrentUser);
-                              }} 
-                              className="text-slate-400 hover:text-rose-500 transition-colors p-1 hover:bg-rose-50 rounded" 
-                              title="Hapus Postingan"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {isCurrentUser && (
+                              <button 
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await handleDeletePost(post.id, isCurrentUser);
+                                }} 
+                                className="text-slate-400 hover:text-rose-500 transition-colors p-1 hover:bg-rose-50 rounded" 
+                                title="Hapus Postingan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button className="text-slate-400 hover:text-slate-700 transition-colors">
                               <MoreHorizontal className="w-3.5 h-3.5" />
                             </button>

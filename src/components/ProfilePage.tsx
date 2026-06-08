@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFirebase } from './FirebaseProvider';
-import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check, AlertTriangle, ArrowUpRight, Lock } from 'lucide-react';
+import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check, AlertTriangle, ArrowUpRight, Lock, Globe, Bell, Link2, Shield, Monitor, Share2, Ban, Trash2, User, PenSquare, ArrowLeft, CheckCircle2, ChevronRight, Camera, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ProfileModal from './ProfileModal';
 import VerificationModal from './VerificationModal';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { WATCHLIST_COINS } from '../utils/constants';
+import { doc, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 
 const TABS = ['Assets', 'History', 'Saved', 'Settings'];
 
@@ -17,12 +19,99 @@ const MOCK_PRICES: Record<string, number> = {
 };
 
 export default function ProfilePage() {
-  const { user, userProfile, updateBalance, transferBalance, transferAsset, coins } = useFirebase();
+  const { user, userProfile, updateBalance, transferBalance, transferAsset, coins, db, logout } = useFirebase();
   const cryptos = useRealTimeCrypto(WATCHLIST_COINS, coins);
   const [activeTab, setActiveTab] = useState('Assets');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+
+  // Settings tab states and handlers
+  const [settingsSubTab, setSettingsSubTab] = useState<'profile' | 'password' | 'notification' | 'link_account' | 'privacy' | 'linked_devices' | 'share_trade' | 'blocked_list' | 'delete_account'>('profile');
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [settingsName, setSettingsName] = useState('');
+  const [settingsEmail, setSettingsEmail] = useState('');
+  const [settingsBio, setSettingsBio] = useState('');
+  const [settingsGender, setSettingsGender] = useState('');
+  const [settingsWebsite, setSettingsWebsite] = useState('');
+  const [settingsPhone, setSettingsPhone] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [showSettingsSuccess, setShowSettingsSuccess] = useState(false);
+
+  useEffect(() => {
+    if (userProfile && !isEditingSettings) {
+      setSettingsName(userProfile.username || user?.displayName || 'Dewangga Miliarder');
+      setSettingsEmail(userProfile.email || user?.email || 'dewanggamiliarder@gmail.com');
+      setSettingsBio(userProfile.biography || '');
+      setSettingsGender(userProfile.gender || 'Male');
+      setSettingsWebsite(userProfile.website || 'https://viadesign.agency');
+      setSettingsPhone(userProfile.phoneNumber || '6287719952733');
+      setPhotoURL(userProfile.avatar || user?.photoURL || '');
+    }
+  }, [userProfile, user, isEditingSettings]);
+
+  const triggerRightImageUpload = () => {
+    document.getElementById('right-profile-picture-file')?.click();
+  };
+
+  const handleRightProfileFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      if (typeof reader.result === 'string') {
+        setPhotoURL(reader.result);
+        // Automatically save avatar back to Firebase!
+        try {
+          if (user && db) {
+            const userRef = doc(db, 'users', user.uid);
+            await updateDoc(userRef, {
+              avatar: reader.result
+            });
+            await updateProfile(user, {
+              photoURL: reader.result
+            });
+            setShowSettingsSuccess(true);
+            setTimeout(() => setShowSettingsSuccess(false), 4000);
+          }
+        } catch (err) {
+          console.error("Failed to upload avatar", err);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveRightSettings = async () => {
+    if (!user || !db) return;
+    setIsSavingSettings(true);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        username: settingsName,
+        email: settingsEmail,
+        biography: settingsBio,
+        gender: settingsGender,
+        website: settingsWebsite,
+        phoneNumber: settingsPhone
+      });
+
+      await updateProfile(user, {
+        displayName: settingsName
+      });
+
+      setIsEditingSettings(false);
+      setShowSettingsSuccess(true);
+      setTimeout(() => setShowSettingsSuccess(false), 5000);
+    } catch (err) {
+      console.error("Error saving settings", err);
+      alert('Gagal memperbarui profil: ' + (err as Error).message);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
   
   // Transaction Modals State
   const [txModal, setTxModal] = useState<'Deposit' | 'Withdraw' | 'Transfer' | null>(null);
@@ -802,7 +891,10 @@ export default function ProfilePage() {
         {/* Action Button */}
         <div className="z-10 flex-shrink-0 mt-4 md:mt-0">
           <button 
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => {
+              setActiveTab('Settings');
+              window.scrollTo({ top: 400, behavior: 'smooth' });
+            }}
             className="px-5 py-2 rounded-sm border border-gray-300 text-sm font-semibold text-[#00AE64] hover:bg-gray-50 transition-colors flex items-center gap-2"
           >
             Edit Profile
@@ -944,6 +1036,475 @@ export default function ProfilePage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        ) : activeTab === 'Settings' ? (
+          <div className="p-3 sm:p-6 lg:p-8 bg-slate-50 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+             {/* Left Column: Settings list */}
+             <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-5 h-fit">
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight px-1">Settings</h2>
+                
+                <div className="space-y-1">
+                   {[
+                      { id: 'profile', label: 'Public Profile', icon: Globe },
+                      { id: 'password', label: 'Password', icon: Lock },
+                      { id: 'notification', label: 'Notification', icon: Bell },
+                      { id: 'link_account', label: 'Link Account', icon: Link2 },
+                      { id: 'privacy', label: 'Privacy', icon: Shield },
+                      { id: 'linked_devices', label: 'Linked Devices', icon: Monitor },
+                      { id: 'share_trade', label: 'Share Trade', icon: Share2 },
+                      { id: 'blocked_list', label: 'Blocked List', icon: Ban },
+                      { id: 'delete_account', label: 'Delete Account', icon: Trash2 }
+                       ,
+                       { id: 'kyc', label: 'Verifikasi KYC', icon: Shield },
+                       { id: 'logout', label: 'Logout / Keluar', icon: LogOut }
+                   ].map((item) => {
+                      const IconComponent = item.icon;
+                      const isActive = settingsSubTab === item.id;
+                      return (
+                         <button
+                            key={item.id}
+                            onClick={() => {
+                              if (item.id === 'kyc') {
+                                setIsVerificationModalOpen(true);
+                              } else if (item.id === 'logout') {
+                                logout();
+                              } else {
+                                setSettingsSubTab(item.id as any);
+                                setIsEditingSettings(false);
+                              }
+                            }}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all font-semibold text-sm ${
+                               isActive 
+                               ? 'bg-slate-100 text-slate-1000 border-r-4 border-[#00AE64]' 
+                               : item.id === 'logout' ? 'text-rose-600 hover:bg-rose-50 hover:text-rose-700' : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900'
+                            }`}
+                         >
+                            <div className="flex items-center gap-3">
+                               <IconComponent className={`w-4.5 h-4.5 ${isActive ? 'text-[#00AE64]' : item.id === 'logout' ? 'text-rose-500' : item.id === 'kyc' ? 'text-amber-500' : 'text-slate-400'}`} />
+                               <span>{item.label}</span>
+                            </div>
+                            {isActive ? (
+                                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                             ) : item.id === 'kyc' ? (
+                                userProfile?.kycStatus === 'VERIFIED' ? (
+                                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-emerald-200">AKTIF</span>
+                                ) : userProfile?.kycStatus === 'UNDER_REVIEW' ? (
+                                  <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-blue-200 font-bold">PROSES</span>
+                                ) : (
+                                  <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-amber-250 animate-pulse font-bold">BELUM</span>
+                                )
+                             ) : null}
+                         </button>
+                      );
+                   })}
+                </div>
+             </div>
+
+             {/* Right Column: Active Settings content */}
+             <div className="lg:col-span-8 bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-full min-h-[500px]">
+                {settingsSubTab === 'profile' && (
+                  <div className="space-y-6 flex flex-col h-full">
+                     {/* Header */}
+                     <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                           {/* Back arrow button */}
+                           <button 
+                             onClick={() => setActiveTab('Assets')}
+                             className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500 hover:text-slate-800"
+                             title="Back to portfolio"
+                           >
+                              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+                           </button>
+
+                           {/* Avatar Image inside special colored background */}
+                           <div className="relative group">
+                              <div className="w-14 h-14 rounded-full overflow-hidden border border-slate-200 bg-blue-500/10 flex items-center justify-center p-1 relative shadow-sm">
+                                 {photoURL ? (
+                                   <img src={photoURL} alt="Profile" className="w-full h-full object-cover rounded-full" referrerPolicy="no-referrer" />
+                                 ) : (
+                                    <div className="w-full h-full bg-blue-500/10 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg uppercase">
+                                       {settingsName?.charAt(0).toUpperCase() || 'U'}
+                                    </div>
+                                 )}
+                                 {isEditingSettings && (
+                                    <div 
+                                      onClick={triggerRightImageUpload}
+                                      className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center cursor-pointer transition-opacity text-white flex items-center justify-center"
+                                      title="Upload photo"
+                                    >
+                                       <Camera className="w-3.5 h-3.5" />
+                                    </div>
+                                 )}
+                              </div>
+                              <input 
+                                 type="file"
+                                 id="right-profile-picture-file"
+                                 accept="image/*"
+                                 className="hidden"
+                                 onChange={handleRightProfileFileChange}
+                              />
+                           </div>
+
+                           {/* Title and Handle text */}
+                           <div>
+                              <h3 className="text-base font-bold text-slate-800">My Public Profile</h3>
+                              <p className="text-xs text-slate-500 font-semibold mt-0.5">@{settingsName?.replaceAll(" ", "").toLowerCase() || 'dewanggatreders'}</p>
+                           </div>
+                        </div>
+
+                        {/* Edit or save state action */}
+                        <div>
+                           {isEditingSettings ? (
+                              <button
+                                onClick={handleSaveRightSettings}
+                                disabled={isSavingSettings}
+                                className="bg-[#00AE64] hover:bg-emerald-600 text-white font-extrabold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition-all"
+                              >
+                                 {isSavingSettings ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-4 h-4 text-white" />}
+                                 <span>Save Changes</span>
+                              </button>
+                           ) : (
+                              <button
+                                onClick={() => setIsEditingSettings(true)}
+                                className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-700 bg-white shadow-sm rounded-lg transition-all"
+                                title="Edit Profile Details"
+                              >
+                                 <PenSquare className="w-5 h-5 animate-pulse" />
+                              </button>
+                           )}
+                        </div>
+                     </div>
+
+                     {/* Success alert notice */}
+                     <AnimatePresence>
+                        {showSettingsSuccess && (
+                           <motion.div 
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl flex items-center gap-2 text-xs font-semibold"
+                           >
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Profil Anda berhasil diperbarui di server blockchain & basis data Firebase!</span>
+                           </motion.div>
+                        )}
+                     </AnimatePresence>
+
+                     {/* Form Rows with thin underline dividers */}
+                     <div className="space-y-6 flex-1">
+                        {/* Name Input */}
+                        <div className="border-b border-slate-100 pb-3">
+                           <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">Name</label>
+                           {isEditingSettings ? (
+                              <input 
+                                 type="text" 
+                                 value={settingsName}
+                                 onChange={e => setSettingsName(e.target.value)}
+                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-850 font-bold focus:outline-none focus:border-[#00AE64]"
+                              />
+                           ) : (
+                              <span className="text-sm font-bold text-slate-800 block min-h-[20px]">{settingsName || 'Dewangga Miliarder'}</span>
+                           )}
+                        </div>
+
+                        {/* Email Input */}
+                        <div className="border-b border-slate-100 pb-3">
+                           <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">Email</label>
+                           {isEditingSettings ? (
+                              <input 
+                                 type="email" 
+                                 value={settingsEmail}
+                                 onChange={e => setSettingsEmail(e.target.value)}
+                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-850 font-bold focus:outline-none focus:border-[#00AE64]"
+                              />
+                           ) : (
+                              <span className="text-sm font-bold text-slate-800 block min-h-[20px]">{settingsEmail || 'dewanggamiliarder@gmail.com'}</span>
+                           )}
+                        </div>
+
+                        {/* Biography Input */}
+                        <div className="border-b border-slate-100 pb-3">
+                           <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">Biography</label>
+                           {isEditingSettings ? (
+                              <textarea 
+                                 value={settingsBio}
+                                 onChange={e => setSettingsBio(e.target.value)}
+                                 placeholder="Beri tahu bursa tentang dirimu..."
+                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-855 font-bold focus:outline-none focus:border-[#00AE64] resize-none h-20"
+                              />
+                           ) : (
+                              <span className={`text-sm block min-h-[20px] ${settingsBio ? 'font-bold text-slate-800' : 'text-slate-400 italic font-semibold'}`}>
+                                 {settingsBio || 'Isi biografi Anda di sini.'}
+                              </span>
+                           )}
+                        </div>
+
+                        {/* Gender Input */}
+                        <div className="border-b border-slate-100 pb-3">
+                           <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">Gender</label>
+                           {isEditingSettings ? (
+                              <select 
+                                 value={settingsGender}
+                                 onChange={e => setSettingsGender(e.target.value)}
+                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-850 font-bold focus:outline-none focus:border-[#00AE64]"
+                              >
+                                 <option value="Male">Male</option>
+                                 <option value="Female">Female</option>
+                                 <option value="Other">Other</option>
+                              </select>
+                           ) : (
+                              <span className={`text-sm block min-h-[20px] ${settingsGender ? 'font-bold text-slate-800' : 'text-slate-400 font-semibold'}`}>
+                                 {settingsGender || 'Gender belum diatur'}
+                              </span>
+                           )}
+                        </div>
+
+                        {/* Website Input */}
+                        <div className="border-b border-slate-100 pb-3">
+                           <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">Website</label>
+                           {isEditingSettings ? (
+                              <input 
+                                 type="text" 
+                                 value={settingsWebsite}
+                                 onChange={e => setSettingsWebsite(e.target.value)}
+                                 placeholder="e.g. https://viadesign.agency"
+                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-850 font-bold focus:outline-none focus:border-[#00AE64]"
+                              />
+                           ) : (
+                              <span className={`text-sm block min-h-[20px] ${settingsWebsite ? 'font-bold text-[#00AE64] hover:underline' : 'text-slate-400 font-semibold'}`}>
+                                 {settingsWebsite ? (
+                                    <a href={settingsWebsite.startsWith('http') ? settingsWebsite : `https://${settingsWebsite}`} target="_blank" rel="noopener noreferrer">{settingsWebsite}</a>
+                                 ) : 'Belum ada website.'}
+                              </span>
+                           )}
+                        </div>
+
+                        {/* Phone Number Input */}
+                        <div className="pb-3">
+                           <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">Phone Number</label>
+                           {isEditingSettings ? (
+                              <input 
+                                 type="tel" 
+                                 value={settingsPhone}
+                                 onChange={e => setSettingsPhone(e.target.value)}
+                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-855 font-bold focus:outline-none focus:border-[#00AE64]"
+                              />
+                           ) : (
+                              <span className="text-sm font-bold text-slate-800 block font-mono min-h-[20px]">{settingsPhone || '6287719952733'}</span>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {/* Auxiliary Sub-tab Panels */}
+                {settingsSubTab === 'password' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-slate-100 pb-4">
+                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                           <Lock className="w-5 h-5 text-[#00AE64]" />
+                           Ubah Kata Sandi
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Perbarui kata sandi akun Anda untuk meningkatkan keamanan.</p>
+                     </div>
+                     <div className="space-y-4">
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 block mb-1">Old Password</label>
+                           <input type="password" placeholder="Masukkan kata sandi lama" className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#00AE64] font-semibold text-slate-800 bg-slate-50" />
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 block mb-1">New Password</label>
+                           <input type="password" placeholder="Masukkan kata sandi baru" className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#00AE64] font-semibold text-slate-800 bg-slate-50" />
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 block mb-1">Confirm New Password</label>
+                           <input type="password" placeholder="Konfirmasi kata sandi baru" className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#00AE64] font-semibold text-slate-800 bg-slate-50" />
+                        </div>
+                        <button onClick={() => {
+                           alert('Password updated successfully! (Simulation only)');
+                        }} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm py-3.5 rounded-xl transition-all">
+                           Update Password
+                        </button>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'notification' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-slate-100 pb-4">
+                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                           <Bell className="w-5 h-5 text-[#00AE64]" />
+                           Notification Settings
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Kelola preferensi pemberitahuan instan via x.</p>
+                     </div>
+                     <div className="space-y-4 divide-y divide-slate-100">
+                        <div className="flex justify-between items-center py-3">
+                           <div>
+                              <p className="text-sm font-bold text-slate-800">Email Notifications</p>
+                              <p className="text-xs text-slate-450">Receive trade receipts and reports via email</p>
+                           </div>
+                           <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#00AE64] focus:ring-[#00AE64] cursor-pointer" />
+                        </div>
+                        <div className="flex justify-between items-center py-3">
+                           <div>
+                              <p className="text-sm font-bold text-slate-800">Price Alerts</p>
+                              <p className="text-xs text-slate-455">Get notified when watchlisted token prices change &gt; 5%</p>
+                           </div>
+                           <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#00AE64] focus:ring-[#00AE64] cursor-pointer" />
+                        </div>
+                        <div className="flex justify-between items-center py-3">
+                           <div>
+                              <p className="text-sm font-bold text-slate-800">New Feed Followers</p>
+                              <p className="text-xs text-slate-455">Get notified when people follow you or reply to posts</p>
+                           </div>
+                           <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#00AE64] focus:ring-[#00AE64] cursor-pointer" />
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'link_account' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-slate-100 pb-4">
+                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                           <Link2 className="w-5 h-5 text-[#00AE64]" />
+                           Link Accounts
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Tautkan akun sosial media &amp; dompet eksternal Anda.</p>
+                     </div>
+                     <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                           <div className="flex items-center gap-3">
+                              <span className="text-xs bg-red-100 text-red-600 px-2.5 py-1 rounded-md font-bold uppercase">Google</span>
+                              <div>
+                                 <p className="text-xs font-bold text-slate-800">dewanggamiliarder@gmail.com</p>
+                                 <p className="text-[10px] text-emerald-600 font-extrabold">TERHUBUNG &amp; SINKRON</p>
+                              </div>
+                           </div>
+                           <span className="text-xs font-bold text-slate-400">Connected</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                           <div className="flex items-center gap-3">
+                              <span className="text-xs bg-blue-100 text-blue-600 px-2.5 py-1 rounded-md font-bold uppercase">Telegram</span>
+                              <div>
+                                 <p className="text-xs font-bold text-slate-800">Telegram Bot Integration</p>
+                                 <p className="text-[10px] text-slate-400 font-semibold">Tautkan untuk sinyal instan</p>
+                              </div>
+                           </div>
+                           <button className="bg-blue-600 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-lg">Hubungkan</button>
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'privacy' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-slate-100 pb-4">
+                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                           <Shield className="w-5 h-5 text-[#00AE64]" />
+                           Privacy Settings
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Kelola privasi data profil &amp; statistik trading Anda.</p>
+                     </div>
+                     <div className="space-y-4 divide-y divide-slate-100">
+                        <div className="flex justify-between items-center py-3">
+                           <div>
+                              <p className="text-sm font-bold text-slate-800">Public Portfolio</p>
+                              <p className="text-xs text-slate-455">Izinkan pengguna lain melihat alokasi koin di portofolio Anda</p>
+                           </div>
+                           <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#00AE64]" />
+                        </div>
+                        <div className="flex justify-between items-center py-3">
+                           <div>
+                              <p className="text-sm font-bold text-slate-800">Anonymize Profile Handle</p>
+                              <p className="text-xs text-slate-455">Sembunyikan nama asli saat melakukan transaksi whale besar</p>
+                           </div>
+                           <input type="checkbox" className="w-4 h-4 rounded text-[#00AE64]" />
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'linked_devices' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-slate-100 pb-4">
+                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                           <Monitor className="w-5 h-5 text-[#00AE64]" />
+                           Linked Devices
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Perangkat aktif yang terhubung dengan akun Anda.</p>
+                     </div>
+                     <div className="space-y-4">
+                        <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-3">
+                           <div className="flex justify-between items-start">
+                              <div className="flex gap-3">
+                                 <Monitor className="w-8 h-8 text-slate-500 bg-slate-200/50 p-1.5 rounded-lg" />
+                                 <div>
+                                    <p className="text-xs font-extrabold text-slate-800">Chrome on Windows Desktop (Current)</p>
+                                    <p className="text-[10px] text-slate-400 font-mono">IP: 182.1.205.14 • Jakarta, Indonesia</p>
+                                 </div>
+                              </div>
+                              <span className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-600 px-2 py-0.5 rounded font-black uppercase">AKTIF</span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'share_trade' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-slate-100 pb-4">
+                        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                           <Share2 className="w-5 h-5 text-[#00AE64]" />
+                           Automatic Share Settings
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Bagikan kemenangan trading otomatis Anda ke khalayak.</p>
+                     </div>
+                     <div className="space-y-4">
+                        <div className="flex justify-between items-center py-3">
+                           <div>
+                              <p className="text-sm font-bold text-slate-800">Share Buy/Sell to Feed</p>
+                              <p className="text-xs text-slate-455">Post transactions automatically to VIA X Stream Feed</p>
+                           </div>
+                           <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#00AE64]" />
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'blocked_list' && (
+                  <div className="space-y-6 text-center py-8">
+                     <Ban className="w-12 h-12 text-slate-300 mx-auto animate-bounce" />
+                     <div>
+                        <h4 className="text-sm font-bold text-slate-800">Empty Blocked List</h4>
+                        <p className="text-xs text-slate-400 mt-1">Anda tidak memblokir akun pengguna manapun saat ini.</p>
+                     </div>
+                  </div>
+                )}
+
+                {settingsSubTab === 'delete_account' && (
+                  <div className="space-y-6">
+                     <div className="border-b border-red-100 pb-4">
+                        <h3 className="text-base font-bold text-red-650 flex items-center gap-2">
+                           <Trash2 className="w-5 h-5 text-red-650" />
+                           Delete Account (Bahaya!)
+                        </h3>
+                        <p className="text-xs text-red-400 mt-1">Hapus akun secara permanen dari ekosistem bursa VIA X.</p>
+                     </div>
+                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-800 text-xs font-semibold leading-relaxed">
+                        Tindakan ini tidak dapat dibatalkan! Semua aset binance/solana, sisa saldo USD, riwayat transaksi, dan IPO koin dalam portofolio Anda akan dihapus secara permanen.
+                     </div>
+                     <button onClick={() => {
+                        if (confirm('Apakah Anda yakin ingin menghapus akun Anda secara permanen?')) {
+                           alert('Tindakan ini dibatasi demi keamanan bursa.');
+                        }
+                     }} className="w-full bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm py-4 rounded-xl transition-all shadow-md">
+                        Delete Account Permanently
+                     </button>
+                  </div>
+                )}
+             </div>
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50/50">

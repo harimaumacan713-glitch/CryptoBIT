@@ -66,18 +66,18 @@ export default function BrokerAnalysis() {
 
   if (!isLoaded) {
     return (
-      <div className="w-full h-full min-h-[800px] bg-[#0A0E17] rounded-xl flex items-center justify-center border border-gray-800 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+      <div className="w-full h-full min-h-[800px] bg-white rounded-xl flex items-center justify-center border border-slate-200 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
         <div className="flex flex-col items-center gap-6 z-10">
           <div className="relative">
-            <div className="w-20 h-20 border-4 border-[#00AE64]/20 border-t-[#00AE64] rounded-full animate-spin"></div>
+            <div className="w-20 h-20 border-4 border-[#00AE64]/10 border-t-[#00AE64] rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
               <Activity className="w-8 h-8 text-[#00AE64] animate-pulse" />
             </div>
           </div>
           <div className="flex flex-col items-center">
-             <h2 className="text-xl font-bold text-white tracking-widest uppercase">Initializing Analytics</h2>
-             <p className="text-gray-400 text-sm mt-2 flex items-center gap-2">
+             <h2 className="text-xl font-bold text-slate-800 tracking-widest uppercase">Initializing Analytics</h2>
+             <p className="text-slate-550 text-sm mt-2 flex items-center gap-2 font-medium">
                Connecting to global data streams <span className="flex gap-1"><span className="w-1 h-1 bg-[#00AE64] rounded-full animate-bounce"></span><span className="w-1 h-1 bg-[#00AE64] rounded-full animate-bounce delay-100"></span><span className="w-1 h-1 bg-[#00AE64] rounded-full animate-bounce delay-200"></span></span>
              </p>
           </div>
@@ -104,20 +104,20 @@ export default function BrokerAnalysis() {
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-[#0A0E17] text-white p-6 rounded-xl border border-gray-800 shadow-2xl relative overflow-hidden"
+      className="w-full bg-white text-slate-800 p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden"
     >
       {/* Background accents */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#00AE64]/10 blur-[120px] rounded-full pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[#00AE64]/5 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-10">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase flex items-center gap-3 text-slate-800">
              <Globe2 className="text-[#00AE64] animate-pulse w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
              Global Broker Analytics
           </h1>
-          <p className="text-gray-400 text-xs sm:text-sm mt-1 flex items-center gap-2">
-             <span className="flex items-center gap-1 text-[#00AE64]">
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 flex items-center gap-2 font-medium">
+             <span className="flex items-center gap-1 text-[#00AE64] font-black">
                <span className="w-2 h-2 rounded-full bg-[#00AE64] animate-ping"></span>
                Live
              </span>
@@ -125,13 +125,13 @@ export default function BrokerAnalysis() {
           </p>
         </div>
         <div className="flex gap-4 w-full md:w-auto justify-between md:justify-end">
-           <div className="bg-[#111827] border border-gray-800 px-4 py-2 rounded-lg flex flex-col items-end shadow-inner flex-1 md:flex-none">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Network Ping</span>
-              <span className="text-[#00AE64] font-mono text-sm font-bold flex items-center gap-1">12ms <SignalHigh className="w-3 h-3"/></span>
+           <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg flex flex-col items-end shadow-sm flex-1 md:flex-none">
+              <span className="text-[10px] text-slate-455 font-black uppercase tracking-wider">Network Ping</span>
+              <span className="text-[#00AE64] font-mono text-sm font-black flex items-center gap-1">12ms <SignalHigh className="w-3 h-3"/></span>
            </div>
-           <div className="bg-[#111827] border border-gray-800 px-4 py-2 rounded-lg flex flex-col items-end shadow-inner flex-1 md:flex-none">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Data nodes</span>
-              <span className="text-blue-400 font-mono text-sm font-bold flex items-center gap-1">2,481 <Database className="w-3 h-3"/></span>
+           <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg flex flex-col items-end shadow-sm flex-1 md:flex-none">
+              <span className="text-[10px] text-slate-455 font-black uppercase tracking-wider">Data nodes</span>
+              <span className="text-blue-600 font-mono text-sm font-black flex items-center gap-1">2,481 <Database className="w-3 h-3"/></span>
            </div>
         </div>
       </div>
@@ -142,30 +142,30 @@ export default function BrokerAnalysis() {
         <div className="lg:col-span-3 space-y-6">
           
           {/* Top Panel - Advanced Analytics Chart */}
-          <div className="bg-[#111827]/80 backdrop-blur-md rounded-xl border border-gray-800 p-5 shadow-lg group relative overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm group relative overflow-hidden">
              {/* Glow effect on hover */}
              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -rotate-45 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out"></div>
              
              <div className="flex justify-between items-center mb-6">
                 <div>
-                   <h3 className="font-bold text-lg flex items-center gap-2 text-gray-100">
-                     <LineChart className="w-5 h-5 text-blue-500"/>
+                   <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800">
+                     <LineChart className="w-5 h-5 text-blue-600"/>
                      Smart Money Flow & Trend Analysis
                    </h3>
                    <div className="flex gap-4 mt-2">
                       <div className="flex items-center gap-2">
                          <div className="w-2 h-2 rounded-full bg-[#00AE64]"></div>
-                         <span className="text-xs text-gray-400 uppercase tracking-widest">Global Aggregated Price </span>
+                         <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Global Aggregated Price </span>
                       </div>
                       <div className="flex items-center gap-2">
                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                         <span className="text-xs text-gray-400 uppercase tracking-widest">Accumulation Index</span>
+                         <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Accumulation Index</span>
                       </div>
                    </div>
                 </div>
                 <div className="flex gap-2">
-                  <button className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-xs font-bold rounded-md transition-colors">1M</button>
-                  <button className="px-3 py-1 bg-[#2563EB] text-white text-xs font-bold rounded-md transition-colors shadow-lg shadow-blue-500/20">LIVE</button>
+                  <button className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-md transition-colors border border-slate-200">1M</button>
+                  <button className="px-3 py-1 bg-[#2563EB] text-white text-xs font-bold rounded-md transition-colors shadow-sm">LIVE</button>
                 </div>
              </div>
 
@@ -182,17 +182,17 @@ export default function BrokerAnalysis() {
                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                      </linearGradient>
                    </defs>
-                   <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" vertical={false} />
-                   <XAxis dataKey="time" stroke="#4B5563" fontSize={10} tickMargin={10} minTickGap={30} />
-                   <YAxis yAxisId="left" stroke="#4B5563" fontSize={10} domain={['auto', 'auto']} tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                   <YAxis yAxisId="right" orientation="right" stroke="#4B5563" fontSize={10} domain={['auto', 'auto']} />
+                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                   <XAxis dataKey="time" stroke="#64748b" fontSize={10} tickMargin={10} minTickGap={30} />
+                   <YAxis yAxisId="left" stroke="#64748b" fontSize={10} domain={['auto', 'auto']} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+                   <YAxis yAxisId="right" orientation="right" stroke="#64748b" fontSize={10} domain={['auto', 'auto']} />
                    <Tooltip 
-                     contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
-                     itemStyle={{ color: '#fff' }}
+                     contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '8px', color: '#1e293b', fontSize: '12px' }}
+                     itemStyle={{ color: '#1e293b' }}
                    />
                    <Area yAxisId="left" type="monotone" dataKey="price" stroke="#00AE64" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" isAnimationActive={false} />
                    <Line yAxisId="right" type="monotone" dataKey="accum" stroke="#3B82F6" strokeWidth={2} dot={false} isAnimationActive={false} />
-                   <Bar yAxisId="right" dataKey="volume" fill="#4B5563" opacity={0.3} barSize={4} />
+                   <Bar yAxisId="right" dataKey="volume" fill="#94a3b8" opacity={0.35} barSize={4} />
                  </ComposedChart>
                </ResponsiveContainer>
              </div>
@@ -200,42 +200,42 @@ export default function BrokerAnalysis() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Exchange Flow */}
-            <div className="bg-[#111827]/80 backdrop-blur-md rounded-xl border border-gray-800 p-5 shadow-lg">
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 shadow-sm">
               <div className="flex justify-between items-center mb-6">
-                 <h3 className="font-bold text-sm flex items-center gap-2 text-gray-100">
-                   <Droplet className="w-4 h-4 text-purple-500"/>
+                 <h3 className="font-bold text-sm flex items-center gap-2 text-slate-800">
+                   <Droplet className="w-4 h-4 text-purple-600"/>
                    Exchange Net Flow
                  </h3>
-                 <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded font-mono">Binance + Coinbase</span>
+                 <span className="text-[10px] bg-purple-555/10 text-purple-600 px-2 py-1 rounded font-mono">Binance + Coinbase</span>
               </div>
               <div className="h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={exchangeFlow} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" vertical={false} />
-                    <XAxis dataKey="hour" stroke="#4B5563" fontSize={9} />
-                    <YAxis stroke="#4B5563" fontSize={9} />
-                    <Tooltip cursor={{fill: '#1F2937'}} contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }}/>
-                    <ReferenceLine y={0} stroke="#4B5563" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="hour" stroke="#64748b" fontSize={9} />
+                    <YAxis stroke="#64748b" fontSize={9} />
+                    <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b', fontSize: '12px' }}/>
+                    <ReferenceLine y={0} stroke="#cbd5e1" />
                     <Bar dataKey="inflow" fill="#00AE64" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="outflow" fill="#EF4444" radius={[0, 0, 2, 2]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex justify-between mt-4 border-t border-gray-800 pt-3">
+              <div className="flex justify-between mt-4 border-t border-slate-200 pt-3">
                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Inflow (24h)</p>
-                    <p className="font-bold text-sm text-[#00AE64] mt-0.5">+$1.24B</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">Total Inflow (24h)</p>
+                    <p className="font-extrabold text-sm text-[#00AE64] mt-0.5">+$1.24B</p>
                  </div>
                  <div className="text-right">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Outflow (24h)</p>
-                    <p className="font-bold text-sm text-red-500 mt-0.5">-$980M</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">Total Outflow (24h)</p>
+                    <p className="font-extrabold text-sm text-red-500 mt-0.5">-$980M</p>
                  </div>
               </div>
             </div>
 
             {/* Smart Wallet Tracking / Trending Assets */}
-            <div className="bg-[#111827]/80 backdrop-blur-md rounded-xl border border-gray-800 p-5 shadow-lg flex flex-col">
-              <h3 className="font-bold text-sm flex items-center gap-2 text-gray-100 mb-4">
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col">
+              <h3 className="font-bold text-sm flex items-center gap-2 text-slate-800 mb-4">
                 <Flame className="w-4 h-4 text-orange-500"/>
                 Top Market Activity (High Momentum)
               </h3>
@@ -247,17 +247,17 @@ export default function BrokerAnalysis() {
                    { symbol: 'SOL', vol: '8.2B', trend: '+8.4%', type: 'High Buying' },
                    { symbol: 'DOGE', vol: '4.1B', trend: '-1.4%', type: 'Neutral' },
                  ].map((coin, i) => (
-                   <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-800/50 transition-colors border border-transparent hover:border-gray-700 cursor-pointer">
+                   <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100/85 transition-colors border border-transparent hover:border-slate-200 cursor-pointer">
                       <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center font-bold text-[10px]">
+                         <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center font-bold text-[10px]">
                             {coin.symbol}
                          </div>
                          <div>
-                            <p className="font-bold text-xs">{coin.symbol} <span className="text-gray-500 font-normal">/ USD</span></p>
-                            <p className="text-[9px] text-gray-400 mt-0.5 flex flex-wrap gap-1 items-center">
+                            <p className="font-bold text-xs text-slate-800">{coin.symbol} <span className="text-slate-400 font-normal">/ USD</span></p>
+                            <p className="text-[9px] text-slate-500 mt-0.5 flex flex-wrap gap-1 items-center">
                               Vol: {coin.vol}
-                              <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-                              <span className={coin.type === 'Distribution' ? 'text-orange-400' : 'text-blue-400'}>{coin.type}</span>
+                              <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                              <span className={coin.type === 'Distribution' ? 'text-orange-600 font-bold' : 'text-blue-600 font-bold'}>{coin.type}</span>
                             </p>
                          </div>
                       </div>
@@ -276,22 +276,22 @@ export default function BrokerAnalysis() {
         <div className="space-y-6 flex flex-col h-full">
           
           {/* Market Sentiment (Fear & Greed) */}
-          <div className="bg-[#111827]/80 backdrop-blur-md rounded-xl border border-gray-800 p-5 shadow-lg">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-sm flex items-center gap-2 text-gray-100">
-                  <PieChart className="w-4 h-4 text-emerald-400"/>
+                <h3 className="font-bold text-sm flex items-center gap-2 text-slate-800">
+                  <PieChart className="w-4 h-4 text-emerald-600"/>
                   Market Sentiment
                 </h3>
              </div>
              <div className="flex flex-col items-center py-4 relative">
                 {/* Simulated Speedometer */}
                 <div className="relative w-40 h-20 overflow-hidden">
-                   <div className="absolute top-0 left-0 w-40 h-40 rounded-full border-[10px] border-gray-800 border-t-red-500 border-l-yellow-500 border-r-[#00AE64] border-b-transparent transform rotate-45 opacity-80"></div>
+                   <div className="absolute top-0 left-0 w-40 h-40 rounded-full border-[10px] border-slate-200 border-t-red-500 border-l-yellow-500 border-r-[#00AE64] border-b-transparent transform rotate-45 opacity-80"></div>
                    <div 
-                     className="absolute bottom-0 left-[50%] w-0.5 h-16 bg-white origin-bottom transition-transform duration-500 ease-out"
+                     className="absolute bottom-0 left-[50%] w-0.5 h-16 bg-slate-700 origin-bottom transition-transform duration-500 ease-out"
                      style={{ transform: `translateX(-50%) rotate(${(fearGreed / 100) * 180 - 90}deg)` }}
                    >
-                     <div className="w-2 h-2 rounded-full bg-white absolute -top-1 -left-[3px] shadow-[0_0_10px_#fff]"></div>
+                     <div className="w-2 h-2 rounded-full bg-slate-700 absolute -top-1 -left-[3px] shadow-[0_0_6px_rgba(51,65,85,0.4)]"></div>
                    </div>
                 </div>
                 
@@ -299,18 +299,18 @@ export default function BrokerAnalysis() {
                    <p className={`text-2xl font-black ${getSentimentColor(fearGreed)} font-mono`}>
                      {Math.round(fearGreed)}
                    </p>
-                   <p className="text-xs uppercase tracking-widest text-gray-400 font-bold mt-1">
+                   <p className="text-xs uppercase tracking-widest text-slate-500 font-extrabold mt-1">
                      {getSentimentText(fearGreed)}
                    </p>
                 </div>
 
                 {/* Pressure Meter */}
                 <div className="w-full mt-6 space-y-2">
-                   <div className="flex justify-between text-[10px] text-gray-400 uppercase font-bold">
+                   <div className="flex justify-between text-[10px] text-slate-500 uppercase font-extrabold">
                      <span>Selling Pressure</span>
                      <span>Buying Pressure</span>
                    </div>
-                   <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden flex">
+                   <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
                       <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${100 - fearGreed}%` }}></div>
                       <div className="h-full bg-[#00AE64] transition-all duration-500" style={{ width: `${fearGreed}%` }}></div>
                    </div>

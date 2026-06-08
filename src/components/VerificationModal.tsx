@@ -69,8 +69,6 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kycStepText, setKycStepText] = useState("Ajukan Verifikasi Instan");
-  const [grantClaimed, setGrantClaimed] = useState(false);
-  const [grantLoading, setGrantLoading] = useState(false);
   
   // Custom Toast state
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -322,19 +320,6 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
     }
   };
 
-  const handleClaimGrant = async () => {
-    setGrantLoading(true);
-    try {
-      await updateBalance(2000000); // Give 2,000,000 USD capital
-      setGrantClaimed(true);
-      triggerToast('success', "Aset Pendanaan Pengembang sebesar $2,000,000 USD telah ditambahkan!");
-    } catch (err: any) {
-      triggerToast('error', "Klaim dana gagal: " + err.message);
-    } finally {
-      setGrantLoading(false);
-    }
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -543,23 +528,6 @@ export default function VerificationModal({ isOpen, onClose }: VerificationModal
                         Silakan isi identitas asli Anda di bawah. Masukkan nama <code className="bg-amber-100 px-1 py-0.5 rounded text-rose-700">reject</code> atau NIK <code className="bg-amber-100 px-1 py-0.5 rounded text-rose-700">12345678</code> untuk menyimulasikan penolakan 24 jam.
                       </p>
                     </div>
-                  </div>
-
-                  {/* Dev capital grant shortcut */}
-                  <div className="bg-[#00AE64]/5 border border-[#00AE64]/10 p-4 rounded-xl flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Saldo Berjalan</span>
-                      <p className="text-lg font-black text-gray-950">${(userProfile?.balance || 0).toLocaleString()}</p>
-                    </div>
-                    <button
-                      onClick={handleClaimGrant}
-                      disabled={grantLoading || grantClaimed}
-                      type="button"
-                      className="bg-gray-950 hover:bg-gray-800 text-white font-bold text-[10px] px-3.5 py-2.5 rounded-md transition-all shrink-0 flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-40 disabled:bg-gray-100 disabled:text-gray-400"
-                    >
-                      <Wallet className="w-3 h-3 text-[#00AE64]" />
-                      {grantLoading ? "Memproses..." : grantClaimed ? "Grant Masuk!" : "Grant Dana $2M"}
-                    </button>
                   </div>
 
                   <form onSubmit={handleKycSubmit} className="space-y-4 pt-1">

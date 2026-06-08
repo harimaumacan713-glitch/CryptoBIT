@@ -61,24 +61,24 @@ export default function WhaleTracker() {
   });
 
   const getIcon = (type: string) => {
-    if (type === 'BUY') return <ArrowUpRight className="w-4 h-4 text-emerald-400" />;
-    if (type === 'SELL') return <ArrowDownRight className="w-4 h-4 text-red-500" />;
-    if (type === 'TRANSFER') return <Send className="w-4 h-4 text-blue-400" />;
-    if (type === 'DEPOSIT') return <DollarSign className="w-4 h-4 text-blue-400" />;
-    return <RefreshCw className="w-4 h-4 text-blue-400" />;
+    if (type === 'BUY') return <ArrowUpRight className="w-4 h-4 text-emerald-600" />;
+    if (type === 'SELL') return <ArrowDownRight className="w-4 h-4 text-red-600" />;
+    if (type === 'TRANSFER') return <Send className="w-4 h-4 text-blue-600" />;
+    if (type === 'DEPOSIT') return <DollarSign className="w-4 h-4 text-blue-600" />;
+    return <RefreshCw className="w-4 h-4 text-blue-600" />;
   };
 
   const getColor = (type: string) => {
-    if (type === 'BUY') return 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10';
-    if (type === 'SELL') return 'text-red-500 border-red-500/20 bg-red-500/10';
-    return 'text-blue-400 border-blue-400/20 bg-blue-400/10';
+    if (type === 'BUY') return 'text-emerald-700 border-emerald-200 bg-emerald-50/60';
+    if (type === 'SELL') return 'text-red-700 border-red-200 bg-red-50/60';
+    return 'text-blue-700 border-blue-200 bg-blue-50/60';
   };
 
   return (
-    <div className="bg-[#0b0e14] border border-gray-800 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,174,100,0.05)] w-full flex flex-col h-[480px]">
-      <div className="p-4 border-b border-gray-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00AE64]/10 blur-3xl -mr-16 -mt-16"></div>
-        <h3 className="text-white font-bold text-base flex items-center gap-2 relative z-10 tracking-wide uppercase">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm w-full flex flex-col h-[480px]">
+      <div className="p-4 border-b border-slate-200 bg-slate-50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00AE64]/5 blur-3xl -mr-16 -mt-16"></div>
+        <h3 className="text-slate-800 font-bold text-base flex items-center gap-2 relative z-10 tracking-wide uppercase">
           <span className="w-2 h-2 rounded-full bg-[#00AE64] relative block">
              <span className="absolute inset-0 rounded-full bg-[#00AE64] animate-ping"></span>
           </span>
@@ -92,7 +92,7 @@ export default function WhaleTracker() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1 text-[10px] uppercase font-bold rounded-full whitespace-nowrap transition-colors flex-shrink-0 ${
-                filter === f ? 'bg-[#00AE64] text-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                filter === f ? 'bg-[#00AE64] text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
               }`}
             >
               {f}
@@ -101,7 +101,7 @@ export default function WhaleTracker() {
         </div>
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+      <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
         <AnimatePresence initial={false}>
           {filteredTx.map(tx => (
             <motion.div
@@ -116,7 +116,7 @@ export default function WhaleTracker() {
               
               <div className="flex justify-between items-start z-10 relative">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-full bg-black/30 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center">
                     <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=${tx.coin}`} alt={tx.coin} className="w-4 h-4 opacity-80" />
                   </div>
                   <div>
@@ -134,14 +134,14 @@ export default function WhaleTracker() {
                    <div className="text-xs font-black tabular-nums tracking-tighter">
                      {tx.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {tx.coin}
                    </div>
-                   <div className="text-[10px] text-white/50 font-medium tabular-nums tracking-tighter mt-0.5 group-hover:text-current/80 transition-colors">
+                   <div className="text-[10px] text-slate-500 font-medium tabular-nums tracking-tighter mt-0.5 group-hover:text-current/80 transition-colors">
                      ${(tx.usdValue).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                    </div>
                 </div>
               </div>
               
               <div className="flex justify-between items-end border-t border-current/10 pt-1.5 mt-0.5 z-10 relative">
-                 <span className="text-[9px] font-bold text-white/30 uppercase cursor-help" title={tx.timestamp}>
+                 <span className="text-[9px] font-bold text-slate-500/80 uppercase cursor-help" title={tx.timestamp}>
                    {formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}
                  </span>
               </div>

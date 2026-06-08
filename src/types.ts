@@ -119,6 +119,11 @@ export interface UserProfile {
       isValidID: boolean;
     }
   };
+  email?: string;
+  phoneNumber?: string;
+  biography?: string;
+  gender?: string;
+  website?: string;
 }
 
 export interface Post {

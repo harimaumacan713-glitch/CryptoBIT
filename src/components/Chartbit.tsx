@@ -412,28 +412,28 @@ export default function Chartbit() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto mt-4 animate-fadeIn">
       {/* Title block */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center gap-2 text-[#00AE64]">
             <Activity className="w-5 h-5 animate-pulse" />
             <span className="font-extrabold text-[10px] tracking-widest uppercase bg-[#00AE64]/10 px-2 py-0.5 rounded border border-[#00AE64]/20">REAL-TIME STATION</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-white italic tracking-tighter mt-1">CHART<span className="text-[#00AE64]">BIT</span> ACTIVE ANALYSIS</h1>
-          <p className="text-slate-400 text-xs md:text-sm">Pantau pergerakan grafik bursa instan dan jalankan instrumen perdagangan AMM & Binance secara langsung.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 italic tracking-tighter mt-1">CHART<span className="text-[#00AE64]">BIT</span> ACTIVE ANALYSIS</h1>
+          <p className="text-slate-500 text-xs md:text-sm font-medium">Pantau pergerakan grafik bursa instan dan jalankan instrumen perdagangan AMM & Binance secara langsung.</p>
         </div>
 
         {/* Custom Coin Indicator Info */}
-        <div className="bg-[#121622] rounded-lg border border-slate-800 p-3 flex items-center gap-4.5">
+        <div className="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-4.5 shadow-sm">
            <div>
               <span className="text-[9px] uppercase font-bold text-slate-500 block">Status Gateway</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                 <span className="text-xs font-black text-emerald-400">WS-STREAM ACTIVE</span>
+                 <span className="text-xs font-black text-emerald-600">WS-STREAM ACTIVE</span>
               </div>
            </div>
-           <div className="border-l border-slate-800 pl-4">
+           <div className="border-l border-slate-200 pl-4">
               <span className="text-[9px] uppercase font-bold text-slate-500 block">Total Live Feeds</span>
-              <span className="text-xs font-black text-white mt-0.5 block">{liveCryptos.length} Pairs</span>
+              <span className="text-xs font-black text-slate-850 mt-0.5 block">{liveCryptos.length} Pairs</span>
            </div>
         </div>
       </div>
@@ -442,13 +442,13 @@ export default function Chartbit() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         
         {/* Left Sidebar: Asset live list */}
-        <div className="xl:col-span-1 bg-[#121622] border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col h-[650px]">
-          <div className="p-4 border-b border-slate-800 bg-[#0c101b]/50 flex items-center justify-between">
-            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Trading Pairs</span>
+        <div className="xl:col-span-1 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col h-[650px]">
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <span className="text-xs font-black text-slate-600 uppercase tracking-wider">Trading Pairs</span>
             <span className="text-[10px] bg-[#00AE64]/10 text-[#00AE64] border border-[#00AE64]/20 px-1.5 py-0.5 rounded font-black">LIVE TICKERS</span>
           </div>
           
-          <div className="overflow-y-auto flex-1 divide-y divide-slate-800/50 pr-1 select-none">
+          <div className="overflow-y-auto flex-1 divide-y divide-slate-100 pr-1 select-none">
             {liveCryptos.map((crypto) => {
               const active = crypto.symbol === selectedSymbol;
               const positive = crypto.changePercent >= 0;
@@ -462,11 +462,11 @@ export default function Chartbit() {
                   className={`p-3.5 flex items-center justify-between gap-2.5 cursor-pointer transition-all ${
                     active 
                       ? 'bg-[#00AE64]/5 border-l-2 border-[#00AE64]' 
-                      : 'hover:bg-slate-800/40 border-l-2 border-transparent'
+                      : 'hover:bg-slate-50 border-l-2 border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
                       <img 
                         src={crypto.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${crypto.symbol}`} 
                         alt={crypto.symbol} 
@@ -475,13 +475,13 @@ export default function Chartbit() {
                       />
                     </div>
                     <div>
-                      <span className="font-extrabold text-sm block text-white">{crypto.symbol}</span>
+                      <span className="font-extrabold text-sm block text-slate-800">{crypto.symbol}</span>
                       <span className="text-[10px] text-slate-500 font-bold block truncate max-w-[80px]">{crypto.name}</span>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <span className="font-black text-xs block text-white font-mono">
+                    <span className="font-black text-xs block text-slate-800 font-mono">
                       ${(crypto.price || 0.1).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                     </span>
                     <span className={`text-[10px] font-black font-mono flex items-center justify-end ${positive ? 'text-[#00AE64]' : 'text-rose-500'}`}>
@@ -496,12 +496,12 @@ export default function Chartbit() {
 
         {/* Center: Chart Canvas */}
         <div className="xl:col-span-2 space-y-6">
-          <div className="bg-[#121622] border border-slate-800 rounded-xl p-5 shadow-2xl relative">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative">
             
             {/* Active stats bar */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4 border-b border-slate-801/50 pb-4 mb-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#0c101b] border border-slate-800 p-1 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 p-1 flex items-center justify-center">
                   <img 
                     src={selectedCoinData.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${selectedCoinData.symbol}`} 
                     alt={selectedSymbol} 
@@ -511,10 +511,10 @@ export default function Chartbit() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-white tracking-tight">{selectedSymbol}/USDT</h2>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 font-semibold bg-slate-800 px-2 py-0.5 rounded">Spot Trading</span>
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">{selectedSymbol}/USDT</h2>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">Spot Trading</span>
                   </div>
-                  <p className="text-xs text-slate-400 font-medium">{selectedCoinData.name}</p>
+                  <p className="text-xs text-slate-500 font-medium">{selectedCoinData.name}</p>
                 </div>
               </div>
 
@@ -522,13 +522,13 @@ export default function Chartbit() {
               <div className="flex items-center gap-5">
                  <div className="text-right">
                     <span className="text-[9px] uppercase font-bold text-slate-500 block">Harga Terkini</span>
-                    <span className="text-xl font-black text-white font-mono block">
+                    <span className="text-xl font-black text-slate-800 font-mono block">
                       ${(selectedCoinData.price || 1.0).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                     </span>
                  </div>
-                 <div className="text-right border-l border-slate-800 pl-5">
+                 <div className="text-right border-l border-slate-200 pl-5">
                     <span className="text-[9px] uppercase font-bold text-slate-500 block">Fluktuasi 24 Jam</span>
-                    <span className={`text-sm font-black font-mono flex items-center justify-end gap-0.5 ${isPositive ? 'text-[#00AE64]' : 'text-rose-500'}`}>
+                    <span className={`text-sm font-black font-mono flex items-center justify-end gap-0.5 ${isPositive ? 'text-[#00AE64]' : 'text-rose-600'}`}>
                       {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                       {isPositive ? '+' : ''}{(selectedCoinData.changePercent || 0).toFixed(2)}%
                     </span>
@@ -537,13 +537,13 @@ export default function Chartbit() {
             </div>
 
             {/* Timeframe & Chart Tools */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#0c101b]/60 p-2 rounded-lg border border-slate-801/40">
-              <div className="flex items-center gap-1.5 bg-[#121622] p-1 rounded-md border border-slate-800 text-[11px] font-bold">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-slate-50 p-2 rounded-lg border border-slate-200/60">
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-slate-200 text-[11px] font-bold">
                 {(['1m', '5m', '1H', '1D'] as const).map(tf => (
                   <button
                     key={tf}
                     onClick={() => setTimeframe(tf)}
-                    className={`px-3 py-1 rounded cursor-pointer transition-colors ${timeframe === tf ? 'bg-[#00AE64] text-white font-black' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-3 py-1 rounded cursor-pointer transition-colors ${timeframe === tf ? 'bg-[#00AE64] text-white font-black' : 'text-slate-500 hover:text-slate-800'}`}
                   >
                     {tf}
                   </button>
@@ -561,7 +561,7 @@ export default function Chartbit() {
                        className={`px-2.5 py-1 text-[10px] rounded border transition-colors cursor-pointer ${
                          indicator === ind 
                            ? 'bg-[#00AE64]/10 text-[#00AE64] border-[#00AE64]/40 font-black' 
-                           : 'bg-[#121622] text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                           : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800 hover:border-slate-350'
                        }`}
                      >
                        {ind}
@@ -574,31 +574,31 @@ export default function Chartbit() {
             {/* Real-time OHLV Hover and Info overlay bar */}
             <div className="mb-4">
               {currentCandle ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-[#0c101b] border border-slate-800/60 p-2.5 rounded-lg text-[11px] font-mono select-none">
-                  <span className="text-slate-400 font-extrabold flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-slate-100 border border-slate-200 p-2.5 rounded-lg text-[11px] font-mono select-none">
+                  <span className="text-slate-500 font-extrabold flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-[#00AE64]" /> DATABAR:
                   </span>
-                  <span className="text-slate-500">TIME: <span className="text-white">{currentCandle.timeStr}</span></span>
-                  <span className="text-slate-500">O: <span className="text-slate-200">${currentCandle.open.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-500">H: <span className="text-emerald-400 font-bold">${currentCandle.high.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-500">L: <span className="text-rose-400 font-bold">${currentCandle.low.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-500">C: <span className={`font-black ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-500'}`}>${currentCandle.close.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-500">VOL: <span className="text-slate-200 font-bold">{Math.round(currentCandle.volume).toLocaleString()}</span></span>
-                  <span className="text-slate-500">CHG: <span className={`font-extrabold ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-500'}`}>{((currentCandle.close - currentCandle.open) / currentCandle.open * 100).toFixed(2)}%</span></span>
+                  <span className="text-slate-400">TIME: <span className="text-slate-800">{currentCandle.timeStr}</span></span>
+                  <span className="text-slate-400">O: <span className="text-slate-800">${currentCandle.open.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
+                  <span className="text-slate-400">H: <span className="text-emerald-600 font-bold">${currentCandle.high.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
+                  <span className="text-slate-400">L: <span className="text-rose-600 font-bold">${currentCandle.low.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
+                  <span className="text-slate-400">C: <span className={`font-black ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-600'}`}>${currentCandle.close.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
+                  <span className="text-slate-400">VOL: <span className="text-slate-800 font-bold">{Math.round(currentCandle.volume).toLocaleString()}</span></span>
+                  <span className="text-slate-400">CHG: <span className={`font-extrabold ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-600'}`}>{((currentCandle.close - currentCandle.open) / currentCandle.open * 100).toFixed(2)}%</span></span>
                 </div>
               ) : (
-                <div className="h-[38px] flex items-center px-3 bg-[#0c101b] border border-slate-800/60 rounded-lg text-xs text-slate-500 font-mono animate-pulse">
+                <div className="h-[38px] flex items-center px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 font-mono animate-pulse">
                   Menghubungkan ke server bursa Binance live stream...
                 </div>
               )}
             </div>
 
             {/* Recharts Area Canvas -> Replaced with interactive Candlestick SVG */}
-            <div className="h-96 w-full relative bg-[#090d16] rounded-lg border border-slate-900 overflow-hidden select-none">
+            <div className="h-96 w-full relative bg-slate-50/75 rounded-lg border border-slate-200 overflow-hidden select-none">
               {chartLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#090d16]/80 backdrop-blur-xs z-10 gap-3">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xs z-10 gap-3">
                   <Loader2 className="w-8 h-8 text-[#00AE64] animate-spin" />
-                  <span className="text-xs font-bold text-slate-400 tracking-wider">MENGHUBUNGKAN BURSA REAL-TIME...</span>
+                  <span className="text-xs font-bold text-slate-500 tracking-wider">MENGHUBUNGKAN BURSA REAL-TIME...</span>
                 </div>
               ) : null}
 
@@ -621,10 +621,10 @@ export default function Chartbit() {
                         y1={gl.y} 
                         x2="920" 
                         y2={gl.y} 
-                        stroke="#1e293b" 
+                        stroke="#e2e8f0" 
                         strokeWidth="1" 
                         strokeDasharray="4 4" 
-                        opacity="0.4" 
+                        opacity="0.95" 
                       />
                       <text 
                         x="930" 
@@ -644,23 +644,23 @@ export default function Chartbit() {
                     <>
                       {/* RSIOB / RSIOS thresholds */}
                       <rect x="10" y="128" width="910" height="144" fill="#a855f7" fillOpacity="0.04" />
-                      <line x1="10" y1="128" x2="920" y2="128" stroke="#a855f7" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-                      <line x1="10" y1="272" x2="920" y2="272" stroke="#a855f7" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-                      <text x="930" y="132" fill="#a855f7" fontSize="9" fontFamily="monospace">70 (OB)</text>
-                      <text x="930" y="276" fill="#a855f7" fontSize="9" fontFamily="monospace">30 (OS)</text>
+                      <line x1="10" y1="128" x2="920" y2="128" stroke="#c084fc" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                      <line x1="10" y1="272" x2="920" y2="272" stroke="#c084fc" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                      <text x="930" y="132" fill="#8b5cf6" fontSize="9" fontFamily="monospace">70 (OB)</text>
+                      <text x="930" y="276" fill="#8b5cf6" fontSize="9" fontFamily="monospace">30 (OS)</text>
 
                       {/* RSI Live Trend Path */}
                       <path 
                         d={`M ${candles.map((c, idx) => c.rsi !== undefined ? `${xMath.getValX(idx)},${380 - (c.rsi / 100 * 360)}` : '').filter(Boolean).join(' ')}`}
                         fill="transparent" 
-                        stroke="#c084fc" 
+                        stroke="#8b5cf6" 
                         strokeWidth="2" 
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                       
                       {/* RSI Indicator Label Tag */}
-                      <text x="20" y="35" fill="#c084fc" fontSize="10" fontFamily="sans-serif" fontWeight="bold">RSI (14)</text>
+                      <text x="20" y="35" fill="#8b5cf6" fontSize="10" fontFamily="sans-serif" fontWeight="bold">RSI (14)</text>
                     </>
                   ) : (
                     <>
@@ -672,7 +672,7 @@ export default function Chartbit() {
                         const yHigh = priceMath.getValY(c.high);
                         const yLow = priceMath.getValY(c.low);
                         const isBullish = c.close >= c.open;
-                        const mainColor = isBullish ? '#00e676' : '#ef4444';
+                        const mainColor = isBullish ? '#00AE64' : '#e11d48';
                         
                         const bodyY = Math.min(yOpen, yClose);
                         const bodyHeight = Math.max(1.5, Math.abs(yOpen - yClose));
@@ -711,12 +711,12 @@ export default function Chartbit() {
                           <path 
                             d={`M ${candles.map((c, idx) => c.ma !== undefined ? `${xMath.getValX(idx)},${priceMath.getValY(c.ma)}` : '').filter(Boolean).join(' ')}`}
                             fill="transparent" 
-                            stroke="#3b82f6" 
+                            stroke="#1d4ed8" 
                             strokeWidth="1.5" 
                             strokeDasharray="4 2"
-                            opacity="0.85"
+                            opacity="0.9"
                           />
-                          <text x="20" y="35" fill="#3b82f6" fontSize="10" fontFamily="sans-serif" fontWeight="bold">MA (14)</text>
+                          <text x="20" y="35" fill="#1d4ed8" fontSize="10" fontFamily="sans-serif" fontWeight="bold">MA (14)</text>
                         </>
                       )}
 
@@ -726,11 +726,11 @@ export default function Chartbit() {
                           <path 
                             d={`M ${candles.map((c, idx) => c.ema !== undefined ? `${xMath.getValX(idx)},${priceMath.getValY(c.ema)}` : '').filter(Boolean).join(' ')}`}
                             fill="transparent" 
-                            stroke="#fbbf24" 
+                            stroke="#ea580c" 
                             strokeWidth="1.5" 
-                            opacity="0.85"
+                            opacity="0.9"
                           />
-                          <text x="20" y="35" fill="#fbbf24" fontSize="10" fontFamily="sans-serif" fontWeight="bold">EMA (14)</text>
+                          <text x="20" y="35" fill="#ea580c" fontSize="10" fontFamily="sans-serif" fontWeight="bold">EMA (14)</text>
                         </>
                       )}
                     </>
@@ -742,8 +742,8 @@ export default function Chartbit() {
                     const x = xMath.getValX(idx);
                     return (
                       <g key={k}>
-                        <line x1={x} y1="20" x2={x} y2="380" stroke="#1e293b" strokeWidth="1" strokeDasharray="3 3" opacity="0.25" />
-                        <text x={x} y="394" fill="#475569" fontSize="9" fontFamily="monospace" textAnchor="middle">{tick.timeStr}</text>
+                        <line x1={x} y1="20" x2={x} y2="380" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 3" opacity="0.8" />
+                        <text x={x} y="394" fill="#64748b" fontSize="9" fontFamily="monospace" textAnchor="middle">{tick.timeStr}</text>
                       </g>
                     );
                   })}
@@ -791,15 +791,15 @@ export default function Chartbit() {
             {/* Visual absolute backdrop overlay info */}
             <div className="absolute right-4 bottom-4 text-right flex items-center gap-1.5">
                <span className="w-1.5 h-1.5 rounded-full bg-[#00AE64] shrink-0 animate-ping" />
-               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">Live Tick update: 1200ms interval</span>
+               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">Live Tick update: 1200ms interval</span>
             </div>
           </div>
           
           {/* Quick Informational Tool Tips block */}
-          <div className="bg-[#121622] rounded-xl p-4 border border-slate-800 flex gap-3.5 text-slate-350">
+          <div className="bg-white rounded-xl p-4 border border-slate-200 flex gap-3.5 text-slate-500 shadow-sm">
              <Info className="w-5 h-5 text-[#00AE64] shrink-0 mt-0.5" />
              <div className="text-xs space-y-1">
-                <span className="font-extrabold text-white block uppercase tracking-wider text-[10px]">Tips Analisis Taktis</span>
+                <span className="font-extrabold text-slate-850 block uppercase tracking-wider text-[10px]">Tips Analisis Taktis</span>
                 <p className="leading-relaxed font-semibold">
                   Tingkatkan metrik visual dengan mengaktifkan indikator <strong>Moving Average (MA)</strong> atau <strong>Exponential Moving Average (EMA)</strong> untuk membaca trend garis resistensi, atau aktifkan momentum <strong>Relative Strength Index (RSI)</strong> untuk mendeteksi area jenuh beli (overbought) atau jenuh jual (oversold) secara presisi.
                 </p>
@@ -809,22 +809,22 @@ export default function Chartbit() {
 
         {/* Right Tab: Execution Interface (Simulated buying & selling with AMM support) */}
         <div className="xl:col-span-1 space-y-6">
-          <div className="bg-[#121622] border border-slate-800 rounded-xl p-5 shadow-2xl flex flex-col justify-between h-[650px]">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between h-[650px]">
             <form onSubmit={handleOrderTrade} className="space-y-5">
-              <div className="pb-3 border-b border-slate-800">
-                <span className="text-[10px] text-purple-400 bg-purple-950/45 px-2 py-0.5 rounded font-black tracking-widest uppercase">EXECUTIVE DESK</span>
-                <h3 className="text-base font-black text-white mt-1">Eksekusi Pasar AMM</h3>
+              <div className="pb-3 border-b border-slate-100">
+                <span className="text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded font-black tracking-widest uppercase">EXECUTIVE DESK</span>
+                <h3 className="text-base font-black text-slate-800 mt-1">Eksekusi Pasar AMM</h3>
               </div>
 
                {/* TAB BUY vs SELL */}
-               <div className="grid grid-cols-2 gap-1 bg-[#0c101b] p-1 rounded-lg border border-slate-800">
+               <div className="grid grid-cols-2 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
                  <button
                    type="button"
                    onClick={() => setTradeAction('BUY')}
                    className={`py-2 rounded-md font-black text-xs transition-colors cursor-pointer uppercase tracking-wider ${
                      tradeAction === 'BUY' 
-                       ? 'bg-[#00AE64] text-white' 
-                       : 'text-slate-400 hover:text-white'
+                       ? 'bg-[#00AE64] text-white shadow-sm' 
+                       : 'text-slate-500 hover:text-slate-800'
                    }`}
                  >
                    BUY
@@ -834,8 +834,8 @@ export default function Chartbit() {
                    onClick={() => setTradeAction('SELL')}
                    className={`py-2 rounded-md font-black text-xs transition-colors cursor-pointer uppercase tracking-wider ${
                      tradeAction === 'SELL' 
-                       ? 'bg-rose-600 text-white' 
-                       : 'text-slate-400 hover:text-white'
+                       ? 'bg-rose-600 text-white shadow-sm' 
+                       : 'text-slate-500 hover:text-slate-800'
                    }`}
                  >
                    SELL
@@ -843,10 +843,10 @@ export default function Chartbit() {
                </div>
 
                {/* Current Balances info */}
-               <div className="bg-[#0c101b] rounded-lg border border-slate-800 p-3.5 space-y-2">
+               <div className="bg-slate-50 rounded-lg border border-slate-200 p-3.5 space-y-2">
                  <div className="flex justify-between items-center text-xs">
                    <span className="text-slate-500 font-bold">Saldo Tersedia</span>
-                   <span className="text-white font-extrabold font-mono">${(userProfile?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                   <span className="text-slate-850 font-extrabold font-mono">${(userProfile?.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                  </div>
                  <div className="flex justify-between items-center text-xs">
                    <span className="text-slate-500 font-bold">Saldo Aset ({selectedSymbol})</span>
@@ -858,7 +858,7 @@ export default function Chartbit() {
 
                {/* Amount input block */}
                <div className="space-y-2">
-                 <label className="text-[11px] uppercase tracking-wider font-extrabold text-slate-400 font-sans block">Jumlah Pembelian / Penjualan</label>
+                 <label className="text-[11px] uppercase tracking-wider font-extrabold text-slate-500 font-sans block">Jumlah Pembelian / Penjualan</label>
                  <div className="relative">
                    <input
                      type="number"
@@ -866,7 +866,7 @@ export default function Chartbit() {
                      value={tradeAmount}
                      onChange={(e) => setTradeAmount(e.target.value)}
                      placeholder={`0.00 ${selectedSymbol}`}
-                     className="w-full bg-[#0c101b] border border-slate-800 rounded-lg p-3 text-sm font-black font-mono text-white focus:outline-none focus:border-[#00AE64] focus:ring-2 focus:ring-[#00AE64]/10 transition-all placeholder:text-slate-700"
+                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-black font-mono text-slate-800 focus:outline-none focus:border-[#00AE64] focus:ring-2 focus:ring-[#00AE64]/10 transition-all placeholder:text-slate-400"
                      required
                    />
                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
@@ -886,21 +886,21 @@ export default function Chartbit() {
                      >
                        MAX
                      </button>
-                     <span className="text-xs font-black text-slate-500 uppercase">{selectedSymbol}</span>
+                     <span className="text-xs font-black text-slate-400 uppercase">{selectedSymbol}</span>
                    </div>
                  </div>
                </div>
 
                {/* Estimations pricing details */}
                {tradeAmount && !isNaN(parseFloat(tradeAmount)) && parseFloat(tradeAmount) > 0 && (
-                  <div className="bg-[#0c101b]/50 rounded-lg p-3 border border-slate-802 text-xs space-y-1.5 font-bold">
-                     <div className="flex justify-between text-slate-400">
+                  <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs space-y-1.5 font-bold">
+                     <div className="flex justify-between text-slate-500">
                         <span>Harga Eksekusi Broker</span>
-                        <span className="text-white font-mono">${(selectedCoinData.price || 1.0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                        <span className="text-slate-800 font-mono">${(selectedCoinData.price || 1.0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                      </div>
-                     <div className="flex justify-between text-slate-400">
+                     <div className="flex justify-between text-slate-500">
                         <span>Total Nilai Transaksi</span>
-                        <span className="text-white font-mono">
+                        <span className="text-slate-800 font-mono">
                           ${(parseFloat(tradeAmount) * (selectedCoinData.price || 1.0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                         </span>
                      </div>
@@ -911,10 +911,10 @@ export default function Chartbit() {
                <button
                  type="submit"
                  disabled={tradeLoading}
-                 className={`w-full font-black py-4.5 rounded-lg shadow-lg hover:shadow-[#00AE64]/10 text-xs tracking-widest uppercase transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
+                 className={`w-full font-black py-4.5 rounded-lg shadow-md hover:shadow-[#00AE64]/10 text-xs tracking-widest uppercase transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
                    tradeAction === 'BUY'
-                     ? 'bg-[#00AE64] hover:bg-[#009656] text-white'
-                     : 'bg-rose-600 hover:bg-rose-700 text-white'
+                     ? 'bg-[#00AE64] hover:bg-[#009656] text-white shadow-sm'
+                     : 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm'
                  }`}
                >
                  {tradeLoading ? (
@@ -937,15 +937,15 @@ export default function Chartbit() {
                     exit={{ opacity: 0 }}
                     className={`rounded-lg p-3.5 text-xs font-bold ${
                       message.type === 'success' 
-                        ? 'bg-emerald-950/20 border border-emerald-500/20 text-emerald-400' 
-                        : 'bg-rose-950/20 border border-rose-500/20 text-rose-450'
+                        ? 'bg-emerald-50 border border-emerald-250 text-emerald-700' 
+                        : 'bg-rose-50 border border-rose-250 text-rose-700'
                     }`}
                   >
                      <div className="flex items-start gap-2">
                         {message.type === 'success' ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         ) : (
-                          <BulletIcon className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 transform rotate-180" />
+                          <BulletIcon className="w-4 h-4 text-rose-600 shrink-0 mt-0.5 transform rotate-180" />
                         )}
                         <span className="leading-relaxed">{message.text}</span>
                      </div>
