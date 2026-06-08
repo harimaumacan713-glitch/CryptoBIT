@@ -80,38 +80,37 @@ export default function TrendingStocks() {
   return (
     <div className="py-4">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] font-black text-white bg-[#00AE64] px-2.5 py-0.5 rounded-sm uppercase tracking-wider animate-pulse-emerald">Top Cryptos</span>
-        <span className="text-[9px] font-bold text-[#00AE64] tracking-widest">● LIVE VOLATILITY</span>
+        <span className="text-[10px] font-black text-white bg-[#00AE64] px-2.5 py-0.5 rounded-sm uppercase tracking-wider">Top Cryptos</span>
+        <span className="text-[9px] font-bold text-[#00AE64] tracking-widest">LIVE VOLATILITY</span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-0 border border-slate-800 rounded-lg bg-[#121622] overflow-hidden shadow-2xl">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-7 gap-0 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
         {cryptos.map((crypto, index) => (
-          <div key={crypto.id} className={`p-4 ${index !== cryptos.length - 1 ? 'border-r border-slate-800' : ''} hover:bg-[#181d2c]/80 transition-colors cursor-pointer group`}>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-[#090b11] rounded-full overflow-hidden border border-slate-800 flex items-center justify-center shrink-0">
+          <div key={crypto.id} className={`p-3 ${index !== cryptos.length - 1 ? 'border-r border-slate-100' : ''} hover:bg-slate-50 transition-colors cursor-pointer group`}>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 flex items-center justify-center shrink-0">
                   <img src={crypto.logo} alt={crypto.symbol} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="font-extrabold text-[11px] text-white leading-none uppercase tracking-tight group-hover:text-[#00AE64] transition-colors">{crypto.symbol}</span>
+                  <span className="font-extrabold text-[10px] text-slate-800 leading-none uppercase tracking-tight group-hover:text-[#00AE64] transition-colors">{crypto.symbol}</span>
                 </div>
               </div>
               <div>
-                 <div className={`text-xs font-bold leading-none ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-red-500'} font-mono`}>
+                 <div className={`text-[11px] font-bold leading-none ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-rose-600'} font-mono`}>
                   ${crypto.price < 1 ? crypto.price.toFixed(4) : crypto.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className={`text-[9px] font-bold mt-0.5 ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-red-500'} flex items-center gap-0.5`}>
-                  <span>{crypto.change >= 0 ? '▲' : '▼'}</span>
+                <div className={`text-[9px] font-bold mt-0.5 ${crypto.change >= 0 ? 'text-[#00AE64]' : 'text-rose-600'} flex items-center gap-0.5`}>
                   <span>{crypto.changePercent.toFixed(2)}%</span>
                 </div>
               </div>
-              <div className="h-6 w-full opacity-85">
+              <div className="h-5 w-full opacity-85">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={crypto.sparkline}>
                     <YAxis domain={['dataMin', 'dataMax']} hide />
                     <Line 
                       type="monotone" 
                       dataKey="value" 
-                      stroke={crypto.change >= 0 ? '#00AE64' : '#ef4444'} 
+                      stroke={crypto.change >= 0 ? '#00AE64' : '#e11d48'} 
                       strokeWidth={1.5} 
                       dot={false} 
                       isAnimationActive={false}

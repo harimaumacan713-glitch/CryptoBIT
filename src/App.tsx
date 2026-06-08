@@ -125,15 +125,15 @@ export default function App() {
           ) : activeTab === 'Academy' ? (
              <Academy />
           ) : (
-            <div className="flex flex-col items-center justify-center p-20 bg-[#121622] border border-slate-800 rounded-lg shadow-sm mt-4">
-               <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest">{activeTab} Section</h2>
-               <p className="text-gray-400 text-sm mt-2">This feature is coming soon to VIA X.</p>
+            <div className="flex flex-col items-center justify-center p-20 bg-white border border-slate-200 rounded-lg shadow-sm mt-4">
+               <h2 className="text-xl font-bold text-slate-400 uppercase tracking-widest">{activeTab} Section</h2>
+               <p className="text-slate-500 text-sm mt-2">This feature is coming soon to VIA X.</p>
             </div>
           )}
         </div>
 
         {/* Right Utility Rail (Floating on desktop with interactive events) */}
-        <aside className="hidden xl:flex flex-col gap-5 py-4 border-l border-slate-800 pl-6 h-screen sticky top-16">
+        <aside className="hidden xl:flex flex-col gap-4 py-4 border-l border-slate-200 pl-6 h-screen sticky top-16">
           <div className="flex flex-col gap-6 items-center">
              <div 
                onClick={() => {
@@ -143,11 +143,11 @@ export default function App() {
                className={`p-2 border rounded-md shadow-sm cursor-pointer transition-colors ${
                  activeTab === 'Chartbit' 
                    ? 'border-[#00AE64] bg-[#00AE64]/10' 
-                   : 'border-slate-800 bg-[#121622] hover:bg-[#181d2c]'
+                   : 'border-slate-200 bg-white hover:bg-slate-50'
                }`}
              >
-                <LayoutPanelLeft className={`w-6 h-6 ${activeTab === 'Chartbit' ? 'text-[#00AE64]' : 'text-slate-350'}`} />
-                <p className="text-[10px] font-bold text-center mt-1 leading-tight text-slate-400">Dashboard Area</p>
+                <LayoutPanelLeft className={`w-6 h-6 ${activeTab === 'Chartbit' ? 'text-[#00AE64]' : 'text-slate-400'}`} />
+                <p className="text-[10px] font-bold text-center mt-1 leading-tight text-slate-500">Dashboard Area</p>
              </div>
               
              <div className="flex flex-col gap-6">
@@ -156,7 +156,7 @@ export default function App() {
                     setActiveTab('Orderbook');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Orderbook' ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`} 
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Orderbook' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`} 
                   title="Lihat Orderbook"
                 />
                 <History 
@@ -164,7 +164,7 @@ export default function App() {
                     setActiveTab('Portfolio');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Portfolio' ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Portfolio' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="Portfolio Saya"
                 />
                 <Flame 
@@ -172,7 +172,7 @@ export default function App() {
                     setActiveTab('Watchlist');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Watchlist' ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Watchlist' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="Watchlist Koin"
                 />
                 <Diamond 
@@ -180,7 +180,7 @@ export default function App() {
                     setActiveTab('Academy');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Academy' ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Academy' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="Academy Web3"
                 />
                 <Truck 
@@ -188,7 +188,7 @@ export default function App() {
                     setActiveTab('Create Coin');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Create Coin' ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Create Coin' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="Launchpad Baru"
                 />
                 <Calendar 
@@ -196,12 +196,12 @@ export default function App() {
                     setActiveTab('Crypto IPO');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Crypto IPO' ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Crypto IPO' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="IPO Hub Calendar"
                 />
                 <Headphones 
                   onClick={() => setIsSupportOpen(prev => !prev)}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${isSupportOpen ? 'text-[#00AE64] scale-110' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${isSupportOpen ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="Customer Support Desk"
                 />
                 <MoreHorizontal 
@@ -209,7 +209,7 @@ export default function App() {
                     setActiveTab('Profile');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Profile' ? 'text-[#00AE64]' : 'text-slate-500'}`}
+                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Profile' ? 'text-[#00AE64]' : 'text-slate-450'}`}
                   title="Profil Sesi"
                 />
              </div>
@@ -218,22 +218,22 @@ export default function App() {
       </main>
 
       {/* Footer Mobile Nav (Floating on mobile) */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#121622]/90 backdrop-blur-lg border border-slate-800 px-6 py-3 rounded-full shadow-2xl flex gap-8 z-55 items-center">
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 px-6 py-3 rounded-full shadow-lg flex gap-8 z-55 items-center">
         <Clock 
           onClick={() => { setActiveTab('Orderbook'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`w-5 h-5 cursor-pointer ${activeTab === 'Orderbook' ? 'text-[#00AE64]' : 'text-slate-405'}`} 
+          className={`w-5 h-5 cursor-pointer ${activeTab === 'Orderbook' ? 'text-[#00AE64]' : 'text-slate-450 hover:text-slate-700'}`} 
         />
         <Calendar 
           onClick={() => { setActiveTab('Crypto IPO'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`w-5 h-5 cursor-pointer ${activeTab === 'Crypto IPO' ? 'text-[#00AE64]' : 'text-slate-405'}`} 
+          className={`w-5 h-5 cursor-pointer ${activeTab === 'Crypto IPO' ? 'text-[#00AE64]' : 'text-slate-450 hover:text-slate-700'}`} 
         />
         <LayoutPanelLeft
           onClick={() => { setActiveTab('Chartbit'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`w-5 h-5 cursor-pointer ${activeTab === 'Chartbit' ? 'text-[#00AE64]' : 'text-slate-405'}`}
+          className={`w-5 h-5 cursor-pointer ${activeTab === 'Chartbit' ? 'text-[#00AE64]' : 'text-slate-450 hover:text-slate-700'}`}
         />
         <MoreHorizontal 
           onClick={() => { setActiveTab('Profile'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className={`w-5 h-5 cursor-pointer ${activeTab === 'Profile' ? 'text-[#00AE64]' : 'text-slate-405'}`} 
+          className={`w-5 h-5 cursor-pointer ${activeTab === 'Profile' ? 'text-[#00AE64]' : 'text-slate-450 hover:text-slate-700'}`} 
         />
       </div>
 

@@ -26,7 +26,7 @@ interface NavbarProps {
 
 export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
   return (
-    <nav className="bg-[#0c101b]/80 border-b border-slate-800/60 overflow-x-auto no-scrollbar backdrop-blur-md sticky top-16 z-40">
+    <nav className="bg-white/95 border-b border-slate-200 overflow-x-auto no-scrollbar sticky top-16 z-40 shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 flex items-center">
         {navItems.map((item) => (
           <button
@@ -35,7 +35,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
             className={`flex items-center gap-2 px-3.5 py-3 font-semibold whitespace-nowrap transition-all relative h-12 flex-shrink-0 cursor-pointer ${
               activeTab === item.label 
                 ? 'text-[#00AE64]' 
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             <item.icon className={`w-4 h-4 transition-transform ${activeTab === item.label ? 'scale-110 text-[#00AE64]' : ''}`} />
@@ -43,12 +43,12 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
             {activeTab === item.label && (
               <motion.div
                 layoutId="nav-underline"
-                className="absolute bottom-0 left-1 right-1 h-0.5 bg-[#00AE64] rounded-full shadow-[0_0_8px_rgba(0,174,100,0.5)]"
+                className="absolute bottom-0 left-1 right-1 h-0.5 bg-[#00AE64] rounded-full"
               />
             )}
           </button>
         ))}
-        <button className="p-3 text-slate-500 hover:text-white flex-shrink-0 transition-colors">
+        <button className="p-3 text-slate-400 hover:text-slate-700 flex-shrink-0 transition-colors">
           <MoreHorizontal className="w-5 h-5" />
         </button>
       </div>

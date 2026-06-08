@@ -115,7 +115,7 @@ export default function PostInput() {
   };
 
   return (
-    <div className="bg-[#121622] border border-slate-800 rounded-xl p-5 mb-5 shadow-2xl relative overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-xl p-4 mb-4 shadow-sm relative overflow-hidden">
       {/* Decorative background pulse for verified creators */}
       {userProfile.isVerified && (
         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
@@ -124,12 +124,12 @@ export default function PostInput() {
       <form onSubmit={handleCreatePost} className="space-y-4">
         <div className="flex gap-4 items-start">
           <div className="relative shrink-0">
-            <div className="w-11 h-11 border border-slate-700 bg-slate-800 rounded-full overflow-hidden shadow-inner flex items-center justify-center">
+            <div className="w-10 h-10 border border-slate-200 bg-slate-50 rounded-full overflow-hidden shadow-inner flex items-center justify-center">
               <img src={userProfile.avatar} alt="User Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
             </div>
             {userProfile.isVerified && (
-              <span className="absolute -bottom-1 -right-1 bg-[#121622] rounded-full p-0.5 shadow-sm flex items-center justify-center border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500 text-white" />
+              <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm flex items-center justify-center border border-slate-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500 text-white animate-pulse" />
               </span>
             )}
           </div>
@@ -141,14 +141,14 @@ export default function PostInput() {
               placeholder={userProfile.isVerified ? "Bagikan insight pasar Web3 eksklusif Anda... (Akun Terverifikasi)" : "Bagikan opini, analisis teknis, atau ide koin kustom Anda..."}
               maxLength={400}
               rows={2}
-              className="w-full text-sm text-slate-100 bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-slate-500 font-medium resize-none leading-relaxed"
+              className="w-full text-xs text-slate-800 bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-slate-400 font-semibold resize-none leading-relaxed"
             />
             
             {/* Real-time character count progress */}
-            <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 border-b border-slate-800/80 pb-3 font-semibold uppercase tracking-wider">
+            <div className="flex items-center justify-between pt-1 text-[9px] text-slate-450 border-b border-slate-100 pb-2.5 font-semibold uppercase tracking-wider">
               <span className="flex items-center gap-1.5 align-middle">
                 <Globe className="w-3.5 h-3.5 text-[#00AE64]" />
-                Publik • Seluruh Komunitas
+                Publik · Seluruh Komunitas
               </span>
               <span>{content.length}/400 karakter</span>
             </div>
@@ -157,8 +157,8 @@ export default function PostInput() {
 
         {/* Selected Image preview */}
         {imageUrl && (
-          <div className="relative rounded-lg overflow-hidden border border-slate-800 bg-[#0c101b] flex justify-center items-center p-2">
-            <img src={imageUrl} alt="Lampiran Postingan" className="max-w-full h-auto max-h-[380px] object-contain rounded" referrerPolicy="no-referrer" />
+          <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex justify-center items-center p-2">
+            <img src={imageUrl} alt="Lampiran Postingan" className="max-w-full h-auto max-h-[350px] object-contain rounded" referrerPolicy="no-referrer" />
             <button
               type="button"
               onClick={() => setImageUrl('')}
@@ -167,7 +167,7 @@ export default function PostInput() {
             >
               <X className="w-3.5 h-3.5" />
             </button>
-            <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] text-white font-extrabold uppercase tracking-wide border border-slate-700/50">
+            <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] text-white font-extrabold uppercase tracking-wide border border-white/10">
               Preview Lampiran
             </div>
           </div>
@@ -187,10 +187,10 @@ export default function PostInput() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden space-y-3 bg-[#0c0f17] rounded-xl p-3.5 border border-slate-800"
+              className="overflow-hidden space-y-3 bg-slate-50 rounded-xl p-3 border border-slate-200"
             >
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <label className="text-[9px] font-bold text-slate-550 uppercase tracking-widest flex items-center gap-1.5">
                   <LinkIcon className="w-3 h-3 text-[#00AE64]" /> URL Gambar/Grafik Pasar
                 </label>
                 <input
@@ -198,27 +198,27 @@ export default function PostInput() {
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="Masukkan URL foto (HTTPS), contoh: https://images.unsplash.com/..."
-                  className="w-full border border-slate-800 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none font-medium text-slate-100 transition-all bg-[#121622]"
+                  className="w-full border border-slate-200 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-[#00AE64]/15 focus:border-[#00AE64] outline-none font-medium text-slate-800 transition-all bg-white"
                 />
               </div>
 
               {/* Presets Choice */}
               <div className="space-y-1.5">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Atau pilih preset ilustrasi premium</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-sans">Atau pilih preset ilustrasi premium</span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {presetImages.map((img) => (
                     <button
                       key={img.name}
                       type="button"
                       onClick={() => setImageUrl(img.url)}
-                      className={`relative rounded-lg overflow-hidden border p-1 transition-all text-left bg-[#121622] select-none cursor-pointer ${
-                        imageUrl === img.url ? 'border-[#00AE64] ring-2 ring-[#00AE64]/10 bg-emerald-950/20' : 'border-slate-800 hover:border-slate-700'
+                      className={`relative rounded-lg overflow-hidden border p-1 transition-all text-left bg-white select-none cursor-pointer ${
+                        imageUrl === img.url ? 'border-[#00AE64] ring-2 ring-[#00AE64]/10 bg-emerald-50' : 'border-slate-200 hover:border-slate-350'
                       }`}
                     >
-                      <div className="h-10 w-full rounded-md overflow-hidden bg-slate-900">
+                      <div className="h-10 w-full rounded-md overflow-hidden bg-slate-50">
                         <img src={img.url} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       </div>
-                      <span className="text-[9px] font-extrabold text-slate-300 block text-center mt-1 truncate">{img.name}</span>
+                      <span className="text-[9px] font-extrabold text-slate-650 block text-center mt-1 truncate">{img.name}</span>
                     </button>
                   ))}
                 </div>
@@ -235,8 +235,8 @@ export default function PostInput() {
               onClick={() => fileInputRef.current?.click()}
               className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 imageUrl              
-                  ? 'bg-emerald-950/40 text-[#00AE64] border border-emerald-500/20' 
-                  : 'bg-[#181d2c] text-slate-300 border border-slate-800 hover:bg-[#1f2538]'
+                  ? 'bg-emerald-50 text-[#00AE64] border border-emerald-500/20' 
+                  : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
               }`}
             >
               <ImageIcon className="w-4 h-4 text-[#00AE64]" />
@@ -245,10 +245,10 @@ export default function PostInput() {
             <button
               type="button"
               onClick={() => setShowImageInput(!showImageInput)}
-              className={`flex items-center px-3 py-2.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center px-3.5 py-2.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
                 showImageInput 
-                  ? 'bg-emerald-950/40 text-[#00AE64] border border-emerald-500/20' 
-                  : 'bg-[#181d2c] text-slate-300 border border-slate-800 hover:bg-[#1f2538]'
+                  ? 'bg-emerald-50 text-[#00AE64] border border-emerald-500/20' 
+                  : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
               }`}
             >
               <LinkIcon className="w-4 h-4" />
@@ -258,7 +258,7 @@ export default function PostInput() {
           <button
             type="submit"
             disabled={isSubmitting || (!content.trim() && !imageUrl.trim())}
-            className="bg-[#00AE64] hover:bg-[#009656] disabled:opacity-40 text-white font-extrabold text-xs px-5 py-3 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-slate-800 disabled:text-slate-500"
+            className="bg-[#00AE64] hover:bg-[#009656] disabled:opacity-40 text-white font-extrabold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
           >
             {isSubmitting ? (
               <>
@@ -266,7 +266,7 @@ export default function PostInput() {
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 text-white" />
                 <span>Publikasikan Insight</span>
               </>
             )}

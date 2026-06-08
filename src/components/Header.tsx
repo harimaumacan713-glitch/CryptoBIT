@@ -169,7 +169,7 @@ export default function Header({ setActiveTab }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 border-b border-slate-800/80 bg-[#0c101b]/95 backdrop-blur-md sticky top-0 z-50 text-white select-none">
+    <header className="h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-50 text-slate-800 select-none shadow-sm">
       <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} onOpenVerification={() => { setIsProfileModalOpen(false); setIsVerificationModalOpen(true); }} />
       <VerificationModal isOpen={isVerificationModalOpen} onClose={() => setIsVerificationModalOpen(false)} />
       
@@ -180,7 +180,7 @@ export default function Header({ setActiveTab }: HeaderProps) {
             className="flex items-center gap-2 cursor-pointer group"
           >
             <div className="flex items-center gap-2">
-              <svg viewBox="0 0 110 110" className="w-10 h-10 transform group-hover:scale-105 transition-all duration-300 drop-shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+              <svg viewBox="0 0 110 110" className="w-10 h-10 transform group-hover:scale-105 transition-all duration-300">
                 <defs>
                   <linearGradient id="viaGradientHeader" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#1e3a8a" />
@@ -197,10 +197,10 @@ export default function Header({ setActiveTab }: HeaderProps) {
                 <path d="M35 55 L25 55 L42 85 L25 85 L35 85 L50 85 L65 85 L75 85 L58 85 L75 55 L65 55 Z" fill="none" />
                 
                 {/* Elegant 3D shaded X shape */}
-                <path d="M32 82 L78 82 L60 52 L50 52 Z" fill="#475569" opacity="0.6" />
-                <path d="M40 82 L70 82 L55 96 L45 96 Z" fill="#334155" />
-                <path d="M25 82 L35 68 L50 90 L40 96 Z" fill="#1e293b" />
-                <path d="M85 82 L75 68 L60 90 L70 96 Z" fill="#1e293b" />
+                <path d="M32 82 L78 82 L60 52 L50 52 Z" fill="#e2e8f0" opacity="0.6" />
+                <path d="M40 82 L70 82 L55 96 L45 96 Z" fill="#cbd5e1" />
+                <path d="M25 82 L35 68 L50 90 L40 96 Z" fill="#f1f5f9" />
+                <path d="M85 82 L75 68 L60 90 L70 96 Z" fill="#f1f5f9" />
 
                 {/* V of VIA */}
                 <path d="M12 25 L25 25 L35 52 L30 52 Z" fill="url(#viaGradientHeader)" />
@@ -210,9 +210,9 @@ export default function Header({ setActiveTab }: HeaderProps) {
                 <rect x="49" y="25" width="8" height="27" rx="1.5" fill="url(#iGradientHeader)" />
                 
                 {/* A of VIA */}
-                <path d="M62 52 L70 25 L79 25 L88 52 L79 52 L77 43 L69 43 L67 52 Z M71 36 L75 36 L73 29 Z" fill="#94a3b8" />
+                <path d="M62 52 L70 25 L79 25 L88 52 L79 52 L77 43 L69 43 L67 52 Z M71 36 L75 36 L73 29 Z" fill="#64748b" />
               </svg>
-              <span className="text-white font-black text-2xl tracking-tighter italic">VIA <span className="text-cyan-400">X</span></span>
+              <span className="text-slate-950 font-black text-2xl tracking-tighter italic">VIA <span className="text-emerald-500">X</span></span>
             </div>
           </div>
           
@@ -220,32 +220,32 @@ export default function Header({ setActiveTab }: HeaderProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search for brand, token symbol or username..."
-              className="w-full bg-[#131825] border border-slate-800 rounded-md py-2 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-500 focus:ring-1 focus:ring-[#00AE64] focus:border-[#00AE64] outline-none transition-all"
+              placeholder="Cari emiten, koin, atau analis..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-1 focus:ring-[#00AE64] focus:border-[#00AE64] outline-none transition-all"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {userProfile?.isVerified ? (
             <button 
               onClick={() => setIsVerificationModalOpen(true)}
-              className="hidden lg:flex items-center gap-1.5 border border-emerald-500/30 bg-emerald-500/10 text-[#00AE64] text-xs font-bold px-3.5 py-1.5 rounded-md hover:bg-emerald-500/20 transition-colors cursor-pointer"
+              className="hidden lg:flex items-center gap-1.5 border border-emerald-500/30 bg-emerald-50 text-[#00AE64] text-xs font-bold px-3.5 py-1.5 rounded-md hover:bg-emerald-100/50 transition-colors cursor-pointer"
             >
-              <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
+              <ShieldCheck className="w-3.5 h-3.5" />
               Terverifikasi Pro
             </button>
           ) : (
             <button 
               onClick={() => setIsVerificationModalOpen(true)}
-              className="hidden lg:flex items-center gap-1.5 border border-[#00AE64] text-[#00AE64] text-xs font-bold px-3.5 py-1.5 rounded-md hover:bg-[#00AE64]/10 transition-colors cursor-pointer active:scale-95 duration-150"
+              className="hidden lg:flex items-center gap-1.5 border border-slate-200 text-slate-700 text-xs font-bold px-3.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors cursor-pointer active:scale-95 duration-150"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               Verifikasi Akun
             </button>
           )}
           
-          <div className="flex items-center gap-1 sm:gap-2 border-l border-slate-800/80 pl-2 sm:pl-4 h-8 select-none">
+          <div className="flex items-center gap-1 sm:gap-2 border-l border-slate-200 pl-2 sm:pl-4 h-8 select-none">
             
             {/* --- REAL-TIME DIRECT MESSAGES (CHAT) TRIGGERS --- */}
             <div className="relative">
@@ -255,12 +255,12 @@ export default function Header({ setActiveTab }: HeaderProps) {
                   setIsNotificationsOpen(false);
                 }}
                 className={`p-1.5 sm:p-2 rounded-full transition-colors flex items-center justify-center cursor-pointer ${
-                  isChatsOpen ? 'bg-[#181d2c] text-white' : 'text-slate-300 hover:bg-[#181d2c]/65 hover:text-white'
+                  isChatsOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 <MessageSquare className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 {unreadChatsCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 sm:top-0.5 sm:right-0.5 bg-[#00AE64] text-white text-[9px] w-4.5 h-4 sm:w-5 sm:h-4 flex items-center justify-center rounded-full border border-slate-900 font-extrabold animate-pulse">
+                  <span className="absolute -top-0.5 -right-0.5 sm:top-0.5 sm:right-0.5 bg-[#00AE64] text-white text-[9px] w-4.5 h-4 sm:w-5 sm:h-4 flex items-center justify-center rounded-full border border-white font-extrabold">
                     {unreadChatsCount}
                   </span>
                 )}
@@ -268,24 +268,24 @@ export default function Header({ setActiveTab }: HeaderProps) {
 
               {/* Chat Popover dropdown */}
               {isChatsOpen && (
-                <div className="absolute right-[-80px] sm:right-0 mt-3 w-[330px] sm:w-[380px] bg-[#0c101b] border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[999] flex flex-col max-h-[460px]">
-                  <div className="p-3 bg-[#111624] border-b border-slate-800 flex items-center justify-between">
+                <div className="absolute right-[-80px] sm:right-0 mt-3 w-[310px] sm:w-[360px] bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden z-[999] flex flex-col max-h-[440px] text-slate-800">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {activeChatUid && (
                         <button 
                           onClick={() => setActiveChatUid(null)}
-                          className="hover:text-white text-slate-400 p-1 rounded-full hover:bg-slate-800 transition-colors"
+                          className="hover:text-slate-900 text-slate-605 p-1 rounded-full hover:bg-slate-200 transition-colors"
                         >
                           <ArrowLeft className="w-4 h-4" />
                         </button>
                       )}
-                      <h3 className="text-xs font-black text-slate-100 uppercase tracking-widest">
-                        {activeChatUid ? 'Pesan Langsung' : 'Kotak Obrolan Real-time'}
+                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                        {activeChatUid ? 'Pesan Langsung' : 'Kotak Obrolan'}
                       </h3>
                     </div>
                     <button 
                       onClick={() => setIsChatsOpen(false)}
-                      className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-850"
+                      className="text-slate-400 hover:text-slate-950 p-1 rounded-full hover:bg-slate-200"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -294,20 +294,20 @@ export default function Header({ setActiveTab }: HeaderProps) {
                   {/* Body */}
                   {activeChatUid ? (
                     /* ACTIVE CHAT SCREEN */
-                    <div className="flex-1 flex flex-col bg-[#070911] h-[360px]">
+                    <div className="flex-1 flex flex-col bg-slate-50 h-[340px]">
                       {/* Contact Info Header */}
-                      <div className="px-3.5 py-2.5 bg-[#0e1322] border-b border-slate-900 flex items-center gap-2">
+                      <div className="px-3.5 py-2.5 bg-white border-b border-slate-100 flex items-center gap-2">
                         <img 
                           src={activeThread?.contactAvatar} 
                           alt={activeThread?.contactName} 
-                          className="w-7 h-7 rounded-full border border-slate-800" 
+                          className="w-7 h-7 rounded-full border border-slate-200 object-cover" 
                         />
-                        <span className="font-extrabold text-xs text-slate-100 tracking-tight">{activeThread?.contactName}</span>
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-auto" />
+                        <span className="font-extrabold text-xs text-slate-800 tracking-tight">{activeThread?.contactName}</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-auto" />
                       </div>
 
                       {/* Messages chain */}
-                      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 scrollbar-none max-h-[250px]">
+                      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 max-h-[230px]">
                         {activeThread?.messages.map((m) => {
                           const isMe = m.senderUid === user?.uid;
                           const formattedTime = new Date(m.createdAt).toLocaleTimeString('id-ID', {
@@ -317,13 +317,13 @@ export default function Header({ setActiveTab }: HeaderProps) {
 
                           return (
                             <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[80%] rounded-xl px-3 py-2 text-xs font-medium leading-relaxed shadow ${
+                              <div className={`max-w-[80%] rounded-xl px-3 py-2 text-xs font-medium leading-relaxed shadow-sm ${
                                 isMe 
                                   ? 'bg-[#00AE64] text-white rounded-tr-none' 
-                                  : 'bg-[#181e30] border border-slate-800 text-slate-200 rounded-tl-none'
+                                  : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
                               }`}>
                                 <p className="whitespace-pre-line">{m.content}</p>
-                                <span className={`text-[8px] font-bold block text-right mt-1 ${isMe ? 'text-emerald-100' : 'text-slate-500'}`}>
+                                <span className={`text-[8px] font-bold block text-right mt-1 ${isMe ? 'text-emerald-100' : 'text-slate-400'}`}>
                                   {formattedTime}
                                 </span>
                               </div>
@@ -334,19 +334,19 @@ export default function Header({ setActiveTab }: HeaderProps) {
                       </div>
 
                       {/* Reply Input Form */}
-                      <form onSubmit={handleSendChatMessage} className="p-2 border-t border-slate-800/80 bg-[#0e1322] flex items-center gap-1.5">
+                      <form onSubmit={handleSendChatMessage} className="p-2 border-t border-slate-200 bg-white flex items-center gap-1.5">
                         <input
                           type="text"
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Ketik pesan balasan..."
-                          className="flex-1 bg-slate-900 text-xs text-slate-200 placeholder:text-slate-555 border border-slate-800 rounded-lg px-2.5 py-2 focus:outline-none focus:border-[#00AE64]"
+                          placeholder="Ketik pesan..."
+                          className="flex-1 bg-slate-50 text-xs text-slate-805 placeholder:text-slate-400 border border-slate-200 rounded-lg px-2.5 py-2 focus:outline-none focus:border-[#00AE64]"
                           maxLength={150}
                         />
                         <button
                           type="submit"
                           disabled={!chatInput.trim()}
-                          className="p-2 bg-[#00AE64] hover:bg-[#009656] disabled:bg-slate-850 text-white rounded-lg transition-all cursor-pointer shadow shrink-0"
+                          className="p-2 bg-[#00AE64] hover:bg-[#009656] disabled:opacity-40 text-white rounded-lg transition-all cursor-pointer shadow shrink-0"
                         >
                           <Send className="w-3.5 h-3.5" />
                         </button>
@@ -354,13 +354,13 @@ export default function Header({ setActiveTab }: HeaderProps) {
                     </div>
                   ) : (
                     /* THREADS LIST SCREEN */
-                    <div className="flex-1 overflow-y-auto divide-y divide-slate-850 max-h-[350px] min-h-[160px] bg-[#0c101b]">
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[330px] min-h-[160px] bg-white">
                       {conversationThreads.length === 0 ? (
                         <div className="p-8 text-center text-slate-500 flex flex-col justify-center items-center gap-2">
-                          <Inbox className="w-8 h-8 text-slate-600" />
-                          <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Inbox Masih Kosong</span>
-                          <p className="text-[10px] text-slate-600 max-w-[220px] leading-relaxed">
-                            Ketika Anda mengomentari postingan orang lain atau orang mengirim pesan, percakapan akan tercatat otomatis di sini.
+                          <Inbox className="w-8 h-8 text-slate-300" />
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Inbox Kosong</span>
+                          <p className="text-[10px] text-slate-450 max-w-[200px] leading-relaxed">
+                            Pesan obrolan real-time akan tercatat di sini.
                           </p>
                         </div>
                       ) : (
@@ -376,25 +376,25 @@ export default function Header({ setActiveTab }: HeaderProps) {
                               onClick={() => {
                                 setActiveChatUid(thread.contactUid);
                               }}
-                              className="p-3.5 flex items-center gap-3 hover:bg-[#111728]/70 transition-all cursor-pointer select-none"
+                              className="p-3 flex items-center gap-3 hover:bg-slate-50 transition-all cursor-pointer select-none"
                             >
                               <div className="relative">
-                                <img src={thread.contactAvatar} alt={thread.contactName} className="w-9 h-9 rounded-full border border-slate-800 shrink-0 object-cover bg-slate-900" />
+                                <img src={thread.contactAvatar} alt={thread.contactName} className="w-9 h-9 rounded-full border border-slate-200 shrink-0 object-cover bg-slate-100" />
                                 {thread.unreadCount > 0 && (
-                                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#00AE64] border border-slate-900 animate-pulse" />
+                                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#00AE64] border border-white" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-0.5">
-                                  <span className="font-extrabold text-[12px] text-slate-200 tracking-tight truncate">{thread.contactName}</span>
-                                  <span className="text-[9px] font-bold text-slate-500 shrink-0">{lastDateStr}</span>
+                                  <span className="font-extrabold text-[12px] text-slate-800 tracking-tight truncate">{thread.contactName}</span>
+                                  <span className="text-[9px] font-bold text-slate-400 shrink-0">{lastDateStr}</span>
                                 </div>
-                                <p className={`text-[11px] truncate ${thread.unreadCount > 0 ? 'text-slate-100 font-extrabold' : 'text-slate-400 font-semibold'}`}>
+                                <p className={`text-[11px] truncate ${thread.unreadCount > 0 ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-semibold'}`}>
                                   {thread.lastMessage}
                                 </p>
                               </div>
                               {thread.unreadCount > 0 && (
-                                <span className="bg-[#00AE64]/10 border border-emerald-500/20 text-[#00AE64] px-1.5 py-0.5 rounded-full text-[9px] font-black shrink-0">
+                                <span className="bg-emerald-50 border border-emerald-100 text-[#00AE64] px-1.5 py-0.5 rounded-full text-[9px] font-black shrink-0">
                                   +{thread.unreadCount}
                                 </span>
                               )}
@@ -416,12 +416,12 @@ export default function Header({ setActiveTab }: HeaderProps) {
                   setIsChatsOpen(false);
                 }}
                 className={`p-1.5 sm:p-2 rounded-full transition-colors flex items-center justify-center cursor-pointer ${
-                  isNotificationsOpen ? 'bg-[#181d2c] text-white' : 'text-slate-300 hover:bg-[#181d2c]/65 hover:text-white'
+                  isNotificationsOpen ? 'bg-slate-100 text-slate-950' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-955'
                 }`}
               >
                 <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 {unreadNotifications.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 sm:top-0.5 sm:right-0.5 bg-[#00AE64] text-white text-[9px] w-4.5 h-4 sm:w-5 sm:h-4 flex items-center justify-center rounded-full border border-slate-900 font-extrabold animate-bounce">
+                  <span className="absolute -top-0.5 -right-0.5 sm:top-0.5 sm:right-0.5 bg-[#00AE64] text-white text-[9px] w-4.5 h-4 sm:w-5 sm:h-4 flex items-center justify-center rounded-full border border-white font-extrabold">
                     {unreadNotifications.length}
                   </span>
                 )}
@@ -429,23 +429,23 @@ export default function Header({ setActiveTab }: HeaderProps) {
 
               {/* Notifications Popover Dropdown */}
               {isNotificationsOpen && (
-                <div className="absolute right-[-40px] sm:right-0 mt-3 w-[330px] sm:w-[360px] bg-[#0c101b] border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[999] flex flex-col max-h-[460px]">
-                  <div className="p-3 bg-[#111624] border-b border-slate-800 flex items-center justify-between">
-                    <h3 className="text-xs font-black text-slate-100 uppercase tracking-widest">
-                      Notifikasi Real-time
+                <div className="absolute right-[-40px] sm:right-0 mt-3 w-[310px] sm:w-[350px] bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden z-[999] flex flex-col max-h-[440px] text-slate-800">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                      Notifikasi
                     </h3>
                     <div className="flex items-center gap-1.5">
                       {unreadNotifications.length > 0 && (
                         <button 
                           onClick={markAllNotificationsAsRead}
-                          className="text-[10px] uppercase font-bla href bg-emerald-950/40 text-[#00AE64] hover:bg-emerald-500/20 px-2 py-1 rounded transition-colors text-right"
+                          className="text-[9px] uppercase font-black bg-emerald-50 text-[#00AE64] hover:bg-emerald-100 px-2 py-1 rounded transition-colors text-right"
                         >
-                          Tandai Semua Selesai
+                          Selesai Semua
                         </button>
                       )}
                       <button 
                         onClick={() => setIsNotificationsOpen(false)}
-                        className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-850"
+                        className="text-slate-400 hover:text-slate-950 p-1 rounded-full hover:bg-slate-200"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -453,13 +453,13 @@ export default function Header({ setActiveTab }: HeaderProps) {
                   </div>
 
                   {/* Listing notifications from Firestore */}
-                  <div className="overflow-y-auto divide-y divide-slate-850 max-h-[350px] min-h-[160px] bg-[#0c101b]">
+                  <div className="overflow-y-auto divide-y divide-slate-100 max-h-[330px] min-h-[160px] bg-white">
                     {notifications.length === 0 ? (
-                      <div className="p-10 text-center text-slate-500 flex flex-col justify-center items-center gap-2">
-                        <Bell className="w-8 h-8 text-slate-600 animate-pulse" />
-                        <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Belum Ada Pemberitahuan</span>
-                        <p className="text-[10px] text-slate-600 max-w-[200px]">
-                          Notifikasi aktivitas real-time akan muncul instan di panel ini gratis.
+                      <div className="p-10 text-center text-slate-400 flex flex-col justify-center items-center gap-2">
+                        <Bell className="w-8 h-8 text-slate-300" />
+                        <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Belum Ada Pemberitahuan</span>
+                        <p className="text-[10px] text-slate-450 max-w-[200px]">
+                          Notifikasi aktivitas real-time akan muncul instan di panel ini.
                         </p>
                       </div>
                     ) : (
@@ -482,16 +482,16 @@ export default function Header({ setActiveTab }: HeaderProps) {
                               }
                             }}
                             className={`p-3 flex items-start gap-2.5 transition-all cursor-pointer ${
-                              n.isRead ? 'opacity-65 hover:bg-slate-900/30' : 'bg-[#111624]/40 border-l-[3px] border-[#00AE64] hover:bg-slate-900/50'
+                              n.isRead ? 'opacity-65 hover:bg-slate-50' : 'bg-slate-50 border-l-[3px] border-[#00AE64] hover:bg-slate-100'
                             }`}
                           >
-                            <img src={n.sender.avatar} alt="Sender" className="w-7 h-7 rounded-full border border-slate-800" />
+                            <img src={n.sender.avatar} alt="Sender" className="w-7 h-7 rounded-full border border-slate-200 object-cover" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11.5px] text-slate-200 leading-normal font-medium">
-                                <span className="font-extrabold text-white">{n.sender.name}</span>{' '}
+                              <p className="text-[11px] text-slate-700 leading-normal font-medium">
+                                <span className="font-extrabold text-slate-900">{n.sender.name}</span>{' '}
                                 {n.message}
                               </p>
-                              <span className="text-[8px] font-black text-slate-500 block mt-1">
+                              <span className="text-[8px] font-black text-slate-400 block mt-1">
                                 {messageTimeStr}
                               </span>
                             </div>
@@ -513,17 +513,17 @@ export default function Header({ setActiveTab }: HeaderProps) {
                   setActiveTab('Profile');
                 }
               }}
-              className="flex items-center gap-1 sm:gap-2 cursor-pointer p-1 sm:p-1.5 hover:bg-[#181d2c] rounded-md sm:ml-2 transition-colors text-white"
+              className="flex items-center gap-1 sm:gap-1.5 cursor-pointer p-1 sm:p-1.5 hover:bg-slate-100 rounded-md sm:ml-2 transition-colors text-slate-700"
             >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c2333] rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden border border-slate-200">
                 {user?.photoURL && user.photoURL !== "" ? (
-                  <img src={user.photoURL} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                   <img src={user.photoURL} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   <User className="w-3.5 h-3.5 text-[#00AE64]" />
                 )}
               </div>
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <span className="text-xs font-semibold text-slate-300 hidden sm:block">
+                <span className="text-xs font-semibold text-slate-750 hidden sm:block">
                   {user?.displayName || 'Profile'}
                 </span>
                 <ChevronDown className="w-3 h-3 text-slate-400" />
