@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFirebase } from './FirebaseProvider';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import PostComments from './PostComments';
@@ -238,6 +238,54 @@ const breakingNewsPool: Omit<NewsArticle, 'id'>[] = [
 export default function Feed() {
   const { db, user, userProfile, realTimeCryptos, deletePost } = useFirebase();
   const [activeMainTab, setActiveMainTab] = useState<'stream' | 'news'>('stream');
+  
+  // Real-time ticking relative time calculation
+  const sessionStartTime = useRef(Date.now());
+  const [timeTicker, setTimeTicker] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeTicker(Date.now());
+    }, 10000); // refresh every 10s
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatRelativeTime = (post: Post) => {
+    let createdAt = (post as any).createdAt;
+    
+    // Fallbacks for mock posts
+    if (!createdAt) {
+      if (post.id === 'mock_award') {
+        createdAt = sessionStartTime.current - 15 * 1000; // 15 seconds ago
+      } else if (post.id === 'mock_1') {
+        createdAt = sessionStartTime.current - 2 * 60 * 60 * 1000; // 2 hours ago
+      } else if (post.id === 'mock_2') {
+        createdAt = sessionStartTime.current - 4 * 60 * 60 * 1000; // 4 hours ago
+      } else {
+        return post.timestamp;
+      }
+    }
+
+    const diffMs = timeTicker - (typeof createdAt === 'number' ? createdAt : new Date(createdAt).getTime());
+    const diffSecs = Math.max(0, Math.floor(diffMs / 1000));
+    
+    if (diffSecs < 10) {
+      return 'Baru saja';
+    }
+    if (diffSecs < 60) {
+      return `${diffSecs} detik yang lalu`;
+    }
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) {
+      return `${diffMins} menit yang lalu`;
+    }
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) {
+      return `${diffHours} jam yang lalu`;
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} hari yang lalu`;
+  };
   
   // Custom states for Social Feed (Stream Web3)
   const [dbPosts, setDbPosts] = useState<Post[]>([]);
@@ -667,7 +715,7 @@ export default function Feed() {
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-[#00AE64]/10 shrink-0" />
                               </span>
                             )}
-                            <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wide ml-1">{post.timestamp}</span>
+                            <span className="text-slate-400 text-[9px] font-bold uppercase tracking-wide ml-1">{formatRelativeTime(post)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {isCurrentUser && (

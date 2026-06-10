@@ -27,6 +27,7 @@ import { Clock, History, Flame, Diamond, Truck, Calendar, Headphones, MoreHorizo
 import { useFirebase } from './components/FirebaseProvider';
 import { AnimatePresence, motion } from 'motion/react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import logisticBanner from './assets/images/logistic_crypto_banner_1781083525581.png';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Stream');
@@ -85,10 +86,10 @@ export default function App() {
                 className="relative rounded-xl overflow-hidden mb-4 border border-slate-200 shadow-sm bg-slate-100"
               >
                 <img 
-                  src="https://i.ibb.co/Gv39zPRn/Yellow-and-White-Modern-Logistic-Company-Presentation.jpg" 
+                  src={logisticBanner} 
                   alt="Logistic Crypto - Bursa Via X Indonesia" 
                   referrerPolicy="no-referrer"
-                  className="w-full h-[140px] sm:h-[180px] md:h-[240px] xl:h-[280px] object-cover transition-all duration-300"
+                  className="w-full h-auto max-h-[320px] object-cover transition-all duration-300"
                 />
               </div>
               <PromoBanner />
