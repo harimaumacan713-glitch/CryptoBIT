@@ -31,7 +31,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 export default function App() {
   const [activeTab, setActiveTab] = useState('Stream');
   const [hasCompletedSplash, setHasCompletedSplash] = useState(false);
-  const [isWinnersModalOpen, setIsWinnersModalOpen] = useState(false);
   const [claimedBadge, setClaimedBadge] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
@@ -83,14 +82,13 @@ export default function App() {
               
               <div 
                 id="logistic-crypto-banner" 
-                onClick={() => setIsWinnersModalOpen(true)}
-                className="relative rounded-xl overflow-hidden mb-4 border border-slate-200 shadow-sm cursor-pointer group"
+                className="relative rounded-xl overflow-hidden mb-4 border border-slate-200 shadow-sm bg-slate-100"
               >
                 <img 
-                  src="/src/assets/images/logistic_crypto_banner_1781083525581.png" 
+                  src="https://i.ibb.co/Gv39zPRn/Yellow-and-White-Modern-Logistic-Company-Presentation.jpg" 
                   alt="Logistic Crypto - Bursa Via X Indonesia" 
                   referrerPolicy="no-referrer"
-                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.015]"
+                  className="w-full h-[140px] sm:h-[180px] md:h-[240px] xl:h-[280px] object-cover transition-all duration-300"
                 />
               </div>
               <PromoBanner />
@@ -230,7 +228,7 @@ export default function App() {
       </main>
 
       {/* Footer Mobile Nav (Floating on mobile) */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 px-6 py-3 rounded-full shadow-lg flex gap-8 z-55 items-center">
+      <div className="xl:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 px-6 py-3 rounded-full shadow-lg flex gap-8 z-55 items-center">
         <Clock 
           onClick={() => { setActiveTab('Orderbook'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           className={`w-5 h-5 cursor-pointer ${activeTab === 'Orderbook' ? 'text-[#00AE64]' : 'text-slate-450 hover:text-slate-700'}`} 
@@ -336,10 +334,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* VIA X GLOBAL AWARDS WINNERS INTERACTIVE MODAL */}
+      {/* VIA X GLOBAL AWARDS WINNERS INTERACTIVE MODAL – HIDDEN/REMOVED */}
       <AnimatePresence>
-        {isWinnersModalOpen && (
-          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xl z-[90] flex items-center justify-center p-4 overflow-y-auto">
+        {false && (
+          <div className="hidden">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -382,7 +380,7 @@ export default function App() {
                   </div>
                   
                   <button 
-                    onClick={() => setIsWinnersModalOpen(false)}
+                    onClick={() => {}}
                     className="absolute sm:relative top-2 right-2 sm:top-0 sm:right-0 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-amber-500 hover:text-black border border-slate-800 hover:border-amber-400/40 text-slate-300 flex items-center justify-center transition-all cursor-pointer font-bold duration-300 z-20"
                   >
                     <X className="w-5 h-5" />
@@ -565,7 +563,6 @@ export default function App() {
                       <button 
                         onClick={() => {
                           setActiveTab('Crypto IPO');
-                          setIsWinnersModalOpen(false);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-md py-1.5 px-3 transition-colors cursor-pointer"

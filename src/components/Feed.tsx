@@ -32,6 +32,12 @@ import {
 } from 'lucide-react';
 import { Post } from '../types';
 
+const formatCount = (count: number) => {
+  if (count >= 1000000) return (count / 1000000).toFixed(1).replace('.0', '') + 'M';
+  if (count >= 1000) return (count / 1000).toFixed(1).replace('.0', '') + 'K';
+  return count.toString();
+};
+
 interface MarketTicker {
   symbol: string;
   name: string;
@@ -56,6 +62,20 @@ interface NewsArticle {
 }
 
 const defaultMockPosts: Post[] = [
+  {
+    id: 'mock_award',
+    author: {
+      name: 'CDN News Digital',
+      username: 'cdn_news',
+      avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=cdn',
+      isVerified: true,
+    },
+    content: 'AWARD OF HONOR\n\nVIA X dengan bangga memberikan penghargaan kepada Dewangga atas dedikasi, kepemimpinan visioner, dan kontribusi luar biasa dalam membangun ekosistem digital, edukasi finansial, serta inovasi teknologi. Semangat dan komitmennya telah menginspirasi banyak orang untuk terus berkembang dan menciptakan dampak positif bagi masa depan.',
+    timestamp: 'Baru saja',
+    likes: 5000000,
+    comments: 5000000,
+    shares: 125000
+  },
   {
     id: 'mock_1',
     author: {
@@ -462,7 +482,12 @@ export default function Feed() {
   };
 
   // Combine stream dynamic posts with hardcoded premium ones
-  const combinedPosts = [...dbPosts, ...defaultMockPosts].filter(post => !locallyDeletedPostIds.includes(post.id));
+  const combinedPosts = [...dbPosts, ...defaultMockPosts].filter(post => !locallyDeletedPostIds.includes(post.id)).map(post => {
+    if (post.content && post.content.includes("AWARD OF HONOR")) {
+      return { ...post, likes: 5000000, comments: 5000000, shares: 125000 };
+    }
+    return post;
+  });
 
   // Filter global macro & political news based on user state
   const filteredNews = newsList.filter(article => {
@@ -682,11 +707,11 @@ export default function Feed() {
                             className={`flex items-center gap-1.5 transition-colors group cursor-pointer ${showComments[post.id] ? 'text-[#00AE64] font-extrabold' : 'hover:text-[#00AE64]'}`}
                           >
                             <MessageSquare className="w-3.5 h-3.5 group-hover:scale-105 transition-transform" />
-                            <span className="text-[10px] font-bold">{post.comments}</span>
+                            <span className="text-[10px] font-bold">{formatCount(post.comments)}</span>
                           </button>
                           <button className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors group cursor-pointer">
                             <Repeat2 className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
-                            <span className="text-[10px] font-bold">{post.shares}</span>
+                            <span className="text-[10px] font-bold">{formatCount(post.shares)}</span>
                           </button>
                           <button 
                             onClick={() => handleLikeClick(post.id)}
@@ -695,7 +720,7 @@ export default function Feed() {
                             }`}
                           >
                             <Heart className={`w-3.5 h-3.5 transition-all ${likeState.liked ? 'fill-rose-500 text-rose-500 scale-105' : 'group-hover:scale-105'}`} />
-                            <span className="text-[10px] font-bold">{effectiveLikes}</span>
+                            <span className="text-[10px] font-bold">{formatCount(effectiveLikes)}</span>
                           </button>
                           <button className="flex items-center gap-1.5 hover:text-emerald-500 transition-colors group cursor-pointer">
                             <Share2 className="w-3.5 h-3.5" />
@@ -872,17 +897,17 @@ export default function Feed() {
                             className={`flex items-center gap-1 transition-all ${liked ? 'text-rose-500 font-extrabold' : 'hover:text-rose-500'}`}
                           >
                             <Heart className={`w-3 h-3 ${liked ? 'fill-rose-500 text-rose-500 scale-105' : ''}`} />
-                            <span className="font-bold">{article.likes}</span>
+                            <span className="font-bold">{formatCount(article.likes)}</span>
                           </button>
 
                           <span className="flex items-center gap-1">
                             <MessageSquare className="w-3 h-3" />
-                            <span className="font-bold">{article.comments}</span>
+                            <span className="font-bold">{formatCount(article.comments)}</span>
                           </span>
 
                           <span className="hidden sm:inline-flex items-center gap-1 text-slate-400/80">
                             <Eye className="w-3 h-3" />
-                            <span className="font-semibold">{article.views.toLocaleString('id-ID')} views</span>
+                            <span className="font-semibold">{formatCount(article.views)} views</span>
                           </span>
                         </div>
 

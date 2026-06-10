@@ -57,7 +57,7 @@ export default function LiveStream({ classId, isHost }: LiveStreamProps) {
   const { db, user, userProfile } = useFirebase();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [status, setStatus] = useState<string>('Memulai Ruang Kelas Virtual...');
+  const [status, setStatus] = useState<string>('Memulai Ruang Kelas Live...');
   const [viewerCount, setViewerCount] = useState(0);
 
   // Q&A Desk States

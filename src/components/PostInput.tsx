@@ -28,7 +28,7 @@ export default function PostInput() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!user || !userProfile) return null;
+  if (!user || !userProfile || user.email !== 'dewanggamiliarder@gmail.com') return null;
 
   const presetImages = [
     { name: 'Bull Market', url: 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=600&auto=format&fit=crop&q=60' },
