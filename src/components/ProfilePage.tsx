@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useFirebase } from './FirebaseProvider';
-import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check, AlertTriangle, ArrowUpRight, Lock, Globe, Bell, Link2, Shield, Monitor, Share2, Ban, Trash2, User, PenSquare, ArrowLeft, CheckCircle2, ChevronRight, Camera, LogOut } from 'lucide-react';
+import { Calendar, Search, PlusCircle, Download, Upload, Send, Eye, TrendingUp, Coins, Wallet, X, Loader2, ArrowRight, Copy, Check, AlertTriangle, ArrowUpRight, Lock, Globe, Bell, Link2, Shield, Monitor, Share2, Ban, Trash2, User, PenSquare, ArrowLeft, CheckCircle2, ChevronRight, Camera, LogOut, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ProfileModal from './ProfileModal';
 import VerificationModal from './VerificationModal';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { WATCHLIST_COINS } from '../utils/constants';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 
 const TABS = ['Assets', 'History', 'Saved', 'Settings'];
@@ -116,17 +116,29 @@ export default function ProfilePage() {
   // Transaction Modals State
   const [txModal, setTxModal] = useState<'Deposit' | 'Withdraw' | 'Transfer' | null>(null);
   const [txAmount, setTxAmount] = useState('');
+  const [idrAmount, setIdrAmount] = useState<string>('');
   const [txRecipient, setTxRecipient] = useState('');
   const [txAsset, setTxAsset] = useState('USD');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Realistic Deposit Flow State variables
-  const [depositStep, setDepositStep] = useState<'input' | 'payment_details' | 'verifying' | 'success'>('input');
+  const [depositStep, setDepositStep] = useState<'input' | 'payment_details' | 'upload' | 'verifying' | 'success'>('input');
   const [depositMethod, setDepositMethod] = useState<'bca' | 'mandiri' | 'qris' | 'gopay'>('bca');
   const [vaNumber, setVaNumber] = useState('');
   const [depositCode, setDepositCode] = useState(0);
   const [copiedVa, setCopiedVa] = useState(false);
   const [verifyingProgressText, setVerifyingProgressText] = useState('Menghubungkan ke gateway Bank Indonesia...');
+  const [claimedBtcBonus, setClaimedBtcBonus] = useState(false);
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(1800); // 30 minutes
+
+  useEffect(() => {
+    let timer: any;
+    if (depositStep === 'payment_details' && countdown > 0) {
+      timer = setInterval(() => setCountdown(c => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [depositStep, countdown]);
 
   // Realistic Withdraw Flow State variables
   const [withdrawStep, setWithdrawStep] = useState<'input' | 'processing' | 'success'>('input');
@@ -188,37 +200,102 @@ export default function ProfilePage() {
       const amount = Number(txAmount);
       if (txModal === 'Deposit') {
         if (depositStep === 'input') {
+          if ((amount * 16350) < 999900) { // Add small tolerance due to rounding
+            alert("Minimal deposit adalah Rp 1.000.000");
+            setIsProcessing(false);
+            return;
+          }
           // Generate realistic billing details
           const uniqueFactor = Math.floor(Math.random() * 900) + 100;
           setDepositCode(uniqueFactor);
           
-          let generatedVa = '';
-          if (depositMethod === 'bca') {
-            generatedVa = `80011${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-          } else if (depositMethod === 'mandiri') {
-            generatedVa = `88008${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-          } else {
-            generatedVa = `00026${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-          }
-          setVaNumber(generatedVa);
+          setVaNumber("559301025279537");
           setDepositStep('payment_details');
           setIsProcessing(false);
           return;
         } else if (depositStep === 'payment_details') {
+            setDepositStep('upload');
+            setIsProcessing(false);
+            return;
+        } else if (depositStep === 'upload') {
+            if (!proofImage) { alert('Harap upload bukti transfer'); setIsProcessing(false); return; }
           // Start simulated payment verification step
           setDepositStep('verifying');
           
-          setVerifyingProgressText('Menghubungkan ke server bank penerima...');
-          await new Promise(resolve => setTimeout(resolve, 800));
+          setVerifyingProgressText('AI OCR membaca bukti transfer...');
           
-          setVerifyingProgressText('Memeriksa rekonsiliasi mutasi rekening...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          setVerifyingProgressText('Sinkronisasi API VIA X gateway bursa...');
-          await new Promise(resolve => setTimeout(resolve, 1200));
+          try {
+            const expectedAmountIdr = (Number(txAmount) * 16350) + depositCode;
+            const targetAccountNumber = "559301025279537";
 
-          await updateBalance(amount);
-          setDepositStep('success');
+            const verifyRes = await fetch('/api/deposit/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                proofImageBase64: proofImage,
+                expectedAmount: expectedAmountIdr,
+                targetAccount: targetAccountNumber
+              })
+            });
+            
+            let verifyData;
+            try {
+              verifyData = await verifyRes.json();
+            } catch (jsonErr) {
+              console.error("JSON Parse error:", jsonErr);
+              throw new Error("Gagal terhubung ke server AI. Server mengembalikan respon tidak valid (mungkin sedang restart/sibuk).");
+            }
+            
+            if (verifyData.error) {
+                alert(verifyData.error);
+                setDepositStep('upload');
+                setIsProcessing(false);
+                return;
+            }
+
+            let finalStatus = verifyData.match ? 'Verified' : 'Rejected';
+            if (!verifyData.success && !verifyData.error) finalStatus = 'Under Review'; // Fallback if API changed but still succeeded
+
+            setVerifyingProgressText('Menyimpan hasil audit verification...');
+
+            // Save to Firestore
+            await addDoc(collection(db, 'deposits'), {
+                userId: user.uid,
+                userName: userProfile.username || 'Anonymous',
+                amount: expectedAmountIdr,
+                uniqueCode: depositCode,
+                destinationBank: depositMethod,
+                destinationAccount: targetAccountNumber,
+                proofImage: proofImage,
+                status: finalStatus,
+                ocrResult: verifyData.ocrResult || null,
+                fraudScore: verifyData.fraudScore || 0,
+                rejectionReason: verifyData.rejectionReason || null,
+                createdAt: serverTimestamp(),
+                ...(finalStatus === 'Verified' ? { verifiedAt: serverTimestamp() } : {})
+            });
+
+            if (finalStatus === 'Verified') {
+              const amount = Number(txAmount);
+              const isBonus = !userProfile.hasDeposited && (amount * 16350 >= 1200000);
+              setClaimedBtcBonus(isBonus);
+              await updateBalance(amount);
+
+              alert("AI Verification System: Bukti valid dan cocok. Deposit Berhasil!");
+              setDepositStep('success');
+            } else if (finalStatus === 'Rejected') {
+              alert(`Deposit Ditolak oleh AI Fraud System: ${verifyData.rejectionReason || 'Bukti transfer tidak sesuai atau terindikasi kecurangan.'}`);
+              setDepositStep('upload');
+            } else {
+              alert("Deposit membutuhkan tinjauan manual (Under Review).");
+              setDepositStep('upload');
+            }
+          } catch (err: any) {
+            console.error('Verify error', err);
+            alert("Terjadi kesalahan sistem verifikasi AI.");
+            setDepositStep('upload');
+          }
+          
           setIsProcessing(false);
           return;
         }
@@ -302,25 +379,41 @@ export default function ProfilePage() {
                       <div className="space-y-4">
                         <div>
                           <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
-                            Jumlah Deposit (USD)
+                            Nominal Deposit (IDR)
                           </label>
                           <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rp</span>
                             <input 
                               type="number" 
-                              value={txAmount}
-                              onChange={e => setTxAmount(e.target.value)}
-                              placeholder="100.00"
-                              className="w-full border border-gray-200 rounded-lg p-4 pl-8 text-xl font-bold focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none text-gray-950"
+                              value={idrAmount}
+                              onChange={e => {
+                                setIdrAmount(e.target.value);
+                                setTxAmount(e.target.value ? (Number(e.target.value) / 16350).toFixed(2) : '');
+                              }}
+                              placeholder="1000000"
+                              className="w-full border border-gray-200 rounded-lg p-4 pl-10 text-xl font-bold focus:border-[#00AE64] focus:ring-1 focus:ring-[#00AE64] outline-none text-gray-950"
                             />
                           </div>
                           
-                          {/* Live IDR conversion preview */}
-                          {txAmount && !isNaN(Number(txAmount)) && Number(txAmount) > 0 && (
-                            <div className="mt-2 bg-emerald-50/50 border border-emerald-100/50 p-2.5 rounded-lg flex justify-between text-xs text-gray-600">
-                              <span>Setara IDR (Kurs: Rp 16.350):</span>
+                          <div className="grid grid-cols-3 gap-2 mt-3">
+                            {[1000000, 5000000, 10000000, 25000000, 50000000].map(amt => (
+                              <button 
+                                key={amt}
+                                type="button"
+                                onClick={() => { setIdrAmount(amt.toString()); setTxAmount((amt / 16350).toFixed(2)); }}
+                                className={`text-[10px] font-bold p-2 rounded-lg border transition-colors ${Number(idrAmount) === amt ? 'bg-[#00AE64] text-white border-[#00AE64]' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}
+                              >
+                                {amt >= 1000000 ? `${amt / 1000000} Juta` : amt.toLocaleString('id-ID')}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Live USD conversion preview */}
+                          {idrAmount && !isNaN(Number(idrAmount)) && Number(idrAmount) > 0 && (
+                            <div className="mt-3 bg-emerald-50/50 border border-emerald-100/50 p-2.5 rounded-lg flex justify-between text-xs text-gray-600">
+                              <span>Setara USD (Kurs: Rp 16.350):</span>
                               <span className="font-mono font-bold text-[#00AE64]">
-                                Rp {(Number(txAmount) * 16350).toLocaleString('id-ID')}
+                                ${(Number(idrAmount) / 16350).toLocaleString('en-US', {maximumFractionDigits:2})}
                               </span>
                             </div>
                           )}
@@ -452,10 +545,16 @@ export default function ProfilePage() {
                           <h2 className="text-2xl font-black text-amber-400 mt-1 font-mono tracking-normal">
                             Rp {((Number(txAmount) * 16350) + depositCode).toLocaleString('id-ID')}
                           </h2>
-                          <div className="flex gap-2 justify-center items-center text-[10px] text-slate-400 mt-1 font-semibold">
-                            <span>Setara:</span> 
-                            <span className="text-emerald-400 font-black">${Number(txAmount).toLocaleString()} USD</span>
-                            <span>+ Kode Unik VA: Rp {depositCode} (Otomatis)</span>
+                          <div className="flex flex-col gap-1 items-center mt-2">
+                             <div className="flex gap-2 justify-center items-center text-[10px] text-slate-400 font-semibold">
+                               <span>Setara:</span> 
+                               <span className="text-emerald-400 font-black">${Number(txAmount).toLocaleString()} USD</span>
+                               <span>+ Kode Unik VA: Rp {depositCode} (Otomatis)</span>
+                             </div>
+                             <div className="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1 rounded-full text-[10px] font-bold mt-2 animate-pulse flex gap-1.5 items-center">
+                               <Clock className="w-3 h-3" />
+                               Selesaikan Pembayaran Dalam: {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
+                             </div>
                           </div>
                         </div>
 
@@ -526,7 +625,6 @@ export default function ProfilePage() {
                             </li>
                           </ul>
                         </div>
-
                         <div className="flex gap-3 pt-2">
                           <button 
                             type="button"
@@ -545,6 +643,59 @@ export default function ProfilePage() {
                           </button>
                         </div>
                       </div>
+                    ) : depositStep === 'upload' ? (
+                        <div className="space-y-4">
+                            <h4 className="text-sm font-bold text-gray-900">Upload Bukti Transfer</h4>
+                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-[#00AE64] transition-colors"
+                                 onClick={() => document.getElementById('deposit-proof-upload')?.click()}>
+                                {proofImage ? <img src={proofImage} alt="Proof" className="max-h-40 rounded-lg"/> : <Upload className="w-10 h-10 text-gray-400 mb-2"/>}
+                                <span className="text-xs text-gray-500 font-medium">Klik untuk upload bukti (JPG/PNG/PDF)</span>
+                                <input type="file" id="deposit-proof-upload" className="hidden" accept="image/*,.pdf" onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if(file) {
+                                        if (file.type.startsWith('image/')) {
+                                            const img = new Image();
+                                            img.onload = () => {
+                                                const canvas = document.createElement('canvas');
+                                                const MAX_WIDTH = 1000;
+                                                const MAX_HEIGHT = 1400;
+                                                let width = img.width;
+                                                let height = img.height;
+
+                                                if (width > height) {
+                                                    if (width > MAX_WIDTH) {
+                                                        height *= MAX_WIDTH / width;
+                                                        width = MAX_WIDTH;
+                                                    }
+                                                } else {
+                                                    if (height > MAX_HEIGHT) {
+                                                        width *= MAX_HEIGHT / height;
+                                                        height = MAX_HEIGHT;
+                                                    }
+                                                }
+                                                canvas.width = width;
+                                                canvas.height = height;
+                                                const ctx = canvas.getContext('2d');
+                                                ctx?.drawImage(img, 0, 0, width, height);
+                                                setProofImage(canvas.toDataURL('image/jpeg', 0.8));
+                                            };
+                                            img.src = URL.createObjectURL(file);
+                                        } else {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => setProofImage(reader.result as string);
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }
+                                }}/>
+                            </div>
+                            <button 
+                                onClick={handleTransaction}
+                                disabled={!proofImage}
+                                className="w-full bg-[#00AE64] text-white font-bold py-3.5 rounded-xl disabled:opacity-50"
+                            >
+                                Submit Bukti
+                            </button>
+                        </div>
                     ) : depositStep === 'verifying' ? (
                       <div className="py-10 flex flex-col items-center justify-center text-center space-y-5">
                         {/* Beautiful rotating radar simulation */}
@@ -591,6 +742,19 @@ export default function ProfilePage() {
                             <span className="text-gray-400 font-semibold">Total Kredit Masuk</span>
                             <span className="text-[#00AE64] font-black italic">+${Number(txAmount).toLocaleString('en-US', {minimumFractionDigits: 2})} USD</span>
                           </div>
+                          
+                          {claimedBtcBonus && (
+                            <div className="bg-amber-500/10 border-2 border-amber-500/30 p-3 rounded-lg text-left mt-2">
+                              <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-200/60 px-1.5 py-0.5 rounded">EVENT BONUS TERKLAIM</span>
+                              <p className="text-xs font-bold text-amber-900 mt-1.5">
+                                Selamat! Deposit Pertama Anda senilai <span className="text-[#00AE64]">Rp {(Number(txAmount) * 16350).toLocaleString('id-ID')} IDR</span> memenuhi syarat event!
+                              </p>
+                              <p className="text-[11px] text-amber-700 font-medium mt-1">
+                                Bonus <span className="font-extrabold text-amber-600">1 BTC</span> telah ditambahkan ke portfolio wallet Anda secara instan. Terima kasih telah mendukung VIA X!
+                              </p>
+                            </div>
+                          )}
+
                           <div className="flex justify-between text-xs border-t border-gray-200/50 pt-2">
                             <span className="text-gray-400 font-semibold">Status Reconciled</span>
                             <span className="text-gray-900 font-bold font-mono">200_OK_VERIFIED</span>
@@ -601,6 +765,7 @@ export default function ProfilePage() {
                           onClick={() => {
                             setTxModal(null);
                             setTxAmount('');
+                            setClaimedBtcBonus(false);
                           }}
                           className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 rounded-xl transition-all active:scale-[0.98]"
                         >
@@ -967,6 +1132,62 @@ export default function ProfilePage() {
                   <h3 className="text-2xl font-bold text-[#00AE64]">${totalBalanceValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
                 </div>
               </div>
+            </div>
+
+            {/* EVENT TOP UP PERTAMA BANNER */}
+            <div className={`p-5 rounded-2xl mb-8 border transition-all relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-4 ${
+              userProfile.firstTopUpBonusClaimed 
+                ? "bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-emerald-500/5 border-emerald-300/40"
+                : "bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border-amber-300/60 shadow-[0_4px_15px_rgb(245,158,11,0.04)]"
+            }`}>
+              {/* Decorative Background Icon */}
+              <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none text-amber-500">
+                <Coins className="w-32 h-32" />
+              </div>
+
+              <div className="flex gap-4 items-center sm:items-start text-center sm:text-left z-10 w-full sm:w-auto">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  userProfile.firstTopUpBonusClaimed 
+                    ? "bg-emerald-100 text-[#00AE64]"
+                    : "bg-amber-100 text-amber-600 animate-pulse"
+                }`}>
+                  <Coins className="w-6 h-6 stroke-[2]" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wider ${
+                      userProfile.firstTopUpBonusClaimed 
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}>
+                      {userProfile.firstTopUpBonusClaimed ? "EVENT SELESAI" : "EVENT UNTUK ANDA"}
+                    </span>
+                    <span className="text-gray-900 font-extrabold text-sm font-sans flex items-center gap-1.5">
+                      Event Top-Up Pertama VIA X 🎁
+                    </span>
+                  </div>
+                  
+                  {userProfile.firstTopUpBonusClaimed ? (
+                    <p className="text-xs text-gray-500 mt-1 font-semibold pb-0.5 max-w-xl">
+                      Selamat! Anda telah berhasil mengklaim bonus <span className="font-bold text-amber-600">1 BTC</span> dari event deposit pertama VIA X. Wallet Anda telah dikreditkan secara instan!
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-600 mt-1 pb-0.5 max-w-xl font-semibold">
+                      Lakukan top-up saldo pertama Anda senilai minimal <span className="font-extrabold text-gray-900">Rp 1.200.000</span> (setara <span className="font-extrabold text-[#00AE64]">$73.40 USD</span>) untuk mendapatkan bonus instan sebesar <span className="font-black text-amber-600 bg-amber-100/50 px-1 rounded">1 BTC</span> secara langsung!
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {!userProfile.firstTopUpBonusClaimed && (
+                <button 
+                  onClick={() => { setDepositStep('input'); setTxModal('Deposit'); }}
+                  className="z-10 group bg-amber-500 hover:bg-amber-600 active:scale-[0.97] transition-all font-black text-xs text-white py-3 px-5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap self-stretch sm:self-center justify-center cursor-pointer"
+                >
+                  <span>Deposit Sekarang</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              )}
             </div>
             
             {/* Asset List */}

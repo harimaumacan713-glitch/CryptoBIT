@@ -220,9 +220,15 @@ export function useRealTimeCrypto(initialData: CryptoData[], customCoins?: IPOCo
             // New listed custom coin, add it
             const change = dbPrice - initialPrice;
             const changePercent = initialPrice > 0 ? (change / initialPrice) * 100 : 0;
-            const sparkline = custom.sparkline && custom.sparkline.length > 0 
+            const sparkline = custom.sparkline && custom.sparkline.length >= 5 
               ? [...custom.sparkline] 
-              : Array.from({ length: 20 }, (_, i) => ({ value: dbPrice * (1 + (Math.random() - 0.5) * 0.05) }));
+              : Array.from({ length: 20 }, (_, i) => {
+                  const ratio = i / 19;
+                  const wave = Math.sin(i / 2) * 0.015 + Math.cos(i / 4) * 0.01;
+                  const noise = (Math.random() - 0.5) * 0.01;
+                  const val = dbPrice * (0.96 + (ratio * 0.04) + wave + noise);
+                  return { value: Number(val) };
+                });
 
             nextCryptos.push({
               id: custom.id,
@@ -237,14 +243,22 @@ export function useRealTimeCrypto(initialData: CryptoData[], customCoins?: IPOCo
           } else {
             // Check if baseline dB price has moved significantly due to user trade
             const existing = nextCryptos[idx];
-            if (Math.abs(existing.price - dbPrice) / dbPrice > 0.005) {
+            if (Math.abs(existing.price - dbPrice) / dbPrice > 0.001) {
               const change = dbPrice - initialPrice;
               const changePercent = initialPrice > 0 ? (change / initialPrice) * 100 : 0;
+              
+              const updatedSparkline = [...(existing.sparkline || [])];
+              updatedSparkline.push({ value: dbPrice });
+              if (updatedSparkline.length > 40) {
+                updatedSparkline.shift();
+              }
+
               nextCryptos[idx] = {
                 ...existing,
                 price: dbPrice,
                 change,
                 changePercent,
+                sparkline: updatedSparkline
               };
             }
           }

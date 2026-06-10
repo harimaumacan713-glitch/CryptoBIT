@@ -57,6 +57,10 @@ export interface IPOCoin {
   tokenPool?: number;
   buyVolume?: number;
   sellVolume?: number;
+  holders?: any[];
+  marketImpact?: number;
+  lastFedUpdate?: string;
+  history1m?: {time: number; open: number; high: number; low: number; close: number; volume: number}[];
 }
 
 export interface IPOOrder {
@@ -124,6 +128,22 @@ export interface UserProfile {
   biography?: string;
   gender?: string;
   website?: string;
+  hasDeposited?: boolean;
+  firstTopUpBonusClaimed?: boolean;
+}
+
+export interface Deposit {
+  depositId: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  uniqueCode: number;
+  destinationBank: string;
+  destinationAccount: string;
+  proofImage: string;
+  status: 'Pending' | 'Verified' | 'Rejected' | 'Under Review';
+  createdAt: any;
+  verifiedAt?: any;
 }
 
 export interface Post {

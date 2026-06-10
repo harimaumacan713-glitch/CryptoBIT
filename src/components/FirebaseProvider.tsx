@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, User, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc, getDocs, where, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, setDoc, doc, updateDoc, runTransaction, getDoc, getDocs, where, deleteDoc, writeBatch } from 'firebase/firestore';
 import { CryptoData, IPOCoin, IPOOrder, UserProfile, AppNotification, ChatMessage } from '../types';
 import { useRealTimeCrypto } from '../hooks/useRealTimeCrypto';
 import { WATCHLIST_COINS } from '../utils/constants';
@@ -79,6 +79,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [dbCoins, setDbCoins] = useState<IPOCoin[]>([]);
   const [coins, setCoins] = useState<IPOCoin[]>([]);
+  const fedSentimentRef = useRef<number>(50);
+  const isFedLiveRef = useRef<boolean>(false);
+
   const [orders, setOrders] = useState<IPOOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -180,99 +183,52 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // Automated epep coin, orderbook, and post cleanup to satisfy the user's delete request
+  // Listen to Fed Broadcast sentiment for custom coin market reactions
   useEffect(() => {
-    const cleanupUnwantedEpepAssets = async () => {
-      try {
-        console.log("Running auto-cleanup routine for epep-related assets...");
+    const unsub = onSnapshot(doc(db, 'system', 'fed_broadcast'), async (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const sentiment = typeof data.sentiment === 'number' ? data.sentiment : 50;
+        const isLive = !!data.isLive;
         
-        // 1. Clean coins on firestore
-        const coinsSnap = await getDocs(collection(db, 'coins'));
-        for (const coinDoc of coinsSnap.docs) {
-          const coinData = coinDoc.data();
-          const nameLower = (coinData.name || "").toLowerCase();
-          const symbolLower = (coinData.symbol || "").toLowerCase();
-          
-          if (nameLower.includes('epep') || symbolLower.includes('epep')) {
-            console.log(`Cleaning up coin: ${coinData.name} (${coinDoc.id})`);
-            await deleteDoc(coinDoc.ref);
-            
-            // Delete associated orders (orderbook of coin epep)
-            const ordersSnap = await getDocs(query(collection(db, 'orders'), where('coinId', '==', coinDoc.id)));
-            for (const orderDoc of ordersSnap.docs) {
-              console.log(`Cleaning up orderbook order ${orderDoc.id}`);
-              await deleteDoc(orderDoc.ref);
-            }
-          }
+        fedSentimentRef.current = sentiment;
+        isFedLiveRef.current = isLive;
+        
+        // Immediate reaction to sentiment
+        if (isLive) {
+            await reactToSentimentImmediate(sentiment);
         }
-
-        // 2. Clean posts on firestore
-        const postsSnap = await getDocs(collection(db, 'posts'));
-        for (const postDoc of postsSnap.docs) {
-          const postData = postDoc.data();
-          const contentLower = (postData.content || "").toLowerCase();
-          const authorNameLower = (postData.author?.name || "").toLowerCase();
-          
-          if (contentLower.includes('epep') || authorNameLower.includes('epep')) {
-            console.log(`Cleaning up post: ${postDoc.id}`);
-            await deleteDoc(postDoc.ref);
-          }
-        }
-
-        // 3. Clean user wallets and assets (remove epep coins from balances so there are no broken references)
-        const usersSnap = await getDocs(collection(db, 'users'));
-        for (const userDoc of usersSnap.docs) {
-          const userData = userDoc.data();
-          let changed = false;
-          const assets = { ...(userData.assets || {}) };
-          const assetsInvested = { ...(userData.assetsInvested || {}) };
-          
-          Object.keys(assets).forEach(key => {
-            if (key.toLowerCase().includes('epep')) {
-              delete assets[key];
-              changed = true;
-            }
-          });
-          Object.keys(assetsInvested).forEach(key => {
-            if (key.toLowerCase().includes('epep')) {
-              delete assetsInvested[key];
-              changed = true;
-            }
-          });
-          
-          if (changed) {
-            console.log(`Cleaning up asset balances for user document: ${userDoc.id}`);
-            await updateDoc(userDoc.ref, { assets, assetsInvested });
-          }
-        }
-
-        // 4. Clean trades (chart data) on firestore
-        const tradesSnap = await getDocs(collection(db, 'trades'));
-        for (const tradeDoc of tradesSnap.docs) {
-          const tradeData = tradeDoc.data();
-          const symbolLower = (tradeData.symbol || "").toLowerCase();
-          if (symbolLower.includes('epep')) {
-            console.log(`Cleaning up trade: ${tradeDoc.id}`);
-            await deleteDoc(tradeDoc.ref);
-          }
-        }
-
-        // 5. Clean live transactions on firestore
-        const txsSnap = await getDocs(collection(db, 'liveTransactions'));
-        for (const txDoc of txsSnap.docs) {
-          const txData = txDoc.data();
-          const coinLower = (txData.coin || "").toLowerCase();
-          if (coinLower.includes('epep')) {
-            console.log(`Cleaning up liveTransaction: ${txDoc.id}`);
-            await deleteDoc(txDoc.ref);
-          }
-        }
-      } catch (err) {
-        console.error("Gagal menjalankan pembersihan epep", err);
       }
-    };
+    });
+    return () => unsub();
+  }, [db]);
 
-    cleanupUnwantedEpepAssets();
+  const reactToSentimentImmediate = async (sentiment: number) => {
+      console.log("Coin update triggered", sentiment);
+      // Impact all coins based on sentiment
+      const batch = writeBatch(db);
+      
+      let impactRate = 0;
+      if (sentiment >= 90) impactRate = 0.20;       // +20%
+      else if (sentiment >= 70) impactRate = 0.06;  // +6%
+      else if (sentiment <= 20) impactRate = -0.08; // -8%
+      else impactRate = (sentiment - 50) / 100 * 0.1; // Linear adjustment otherwise
+
+      coins.forEach(coin => {
+          const coinRef = doc(db, 'coins', coin.id);
+          const newPriceImpact = 1 + impactRate; 
+          batch.update(coinRef, {
+              price: Number(coin.price || coin.currentPrice) * newPriceImpact,
+              lastImpact: sentiment
+          });
+      });
+      await batch.commit();
+      console.log("Coin update completed");
+  };
+
+  // Automated epep coin, orderbook, and post cleanup is removed per user request to stop auto-deleting coins.
+  useEffect(() => {
+    // Intentionally left blank or removed
   }, []);
 
   // Automated Listing or Failure check (Real-time AMM Pool setup and Automated full refunding for failures)
@@ -290,11 +246,14 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
          if (!isNaN(listingTime) && coin.status !== 'Listed' && coin.status !== 'Failed' && now >= listingTime) {
              const coinRef = doc(db, 'coins', coin.id);
              
+              const isFounderCoin = coin.creatorId === 'dewanggamiliarder@gmail.com';
+             
              // 20% allocated for IPO, hardcap is total value of this allocation
              const hardcap = coin.hardcap || (coin.totalSupply * 0.2 * coin.initialPrice);
              const fundRaised = (coin.soldCount || 0) * coin.initialPrice;
 
-             if (fundRaised >= hardcap) {
+             // Auto-list if it reached hardcap, OR if it's a founder coin (don't auto-fail founder's test coins)
+             if (fundRaised >= hardcap || isFounderCoin) {
                  // Success IPO -> Transition to LISTED & build pool
                  const initialUsdPool = (coin.liquidity || 1000000) + fundRaised;
                  const initialTokenPool = initialUsdPool / coin.initialPrice;
@@ -393,6 +352,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   const createCoin = async (coinData: Partial<IPOCoin>) => {
     if (!user) throw new Error('Must be logged in');
+    if (user.email !== 'dewanggamiliarder@gmail.com') throw new Error('Akses Ditolak. Hanya dewanggamiliarder@gmail.com yang dizinkan.');
     if (!userProfile) throw new Error('User profile not loaded');
     
     const reqLiquidity = Number(coinData.liquidity) || 1000000;
@@ -427,6 +387,38 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const usdPoolVal = reqLiquidity;
     const tokenPoolVal = reqLiquidity / (coinData.initialPrice || 0.1);
 
+    const initPriceVal = coinData.initialPrice || 0.1;
+    const generatedSparkline = Array.from({ length: 20 }, (_, i) => {
+      const ratio = i / 19;
+      const wave = Math.sin(i / 2) * 0.012 + Math.cos(i / 4) * 0.008;
+      const noise = (Math.random() - 0.5) * 0.01;
+      const val = initPriceVal * (0.96 + (ratio * 0.04) + wave + noise);
+      return { value: Number(val.toFixed(8)) };
+    });
+
+    const nowMin = Math.floor(Date.now() / 60000) * 60000;
+    const preHistory: any[] = [];
+    let histPrice = initPriceVal * 0.75;
+    for (let i = 7200; i >= 0; i--) {
+      const t = nowMin - (i * 60000);
+      const open = histPrice;
+      const target = initPriceVal;
+      const distance = target - open;
+      const step = distance / (i + 1) + (Math.random() - 0.45) * 0.02 * open;
+      const close = i === 0 ? initPriceVal : open + step;
+      const high = Math.max(open, close) * (1 + Math.random() * 0.005);
+      const low = Math.min(open, close) * (1 - Math.random() * 0.005);
+      preHistory.push({
+        time: t,
+        open: Number(open.toFixed(8)),
+        high: Number(high.toFixed(8)),
+        low: Number(low.toFixed(8)),
+        close: Number(close.toFixed(8)),
+        volume: Number((1000 + Math.random() * 50000).toFixed(2))
+      });
+      histPrice = close;
+    }
+
     const docRef = await addDoc(collection(db, 'coins'), {
       ...coinData,
       status: initialStatus,
@@ -443,8 +435,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       creatorWallet: userProfile.walletAddress || '0xUNKNOWN',
       usdPool: usdPoolVal, // initial pool USD
       tokenPool: tokenPoolVal, // initial token pool
-      currentPrice: isDirectListed ? (coinData.initialPrice || 0.1) : null,
-      sparkline: isDirectListed ? [{ value: coinData.initialPrice || 0.1 }] : [{ value: coinData.initialPrice || 0.1 }],
+      currentPrice: isDirectListed ? initPriceVal : null,
+      sparkline: generatedSparkline,
+      history1m: preHistory,
       timestamp: serverTimestamp()
     });
 
@@ -455,6 +448,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   const instantListCoin = async (coinId: string) => {
     if (!user) throw new Error('Must be logged in');
+    if (user.email !== 'dewanggamiliarder@gmail.com') throw new Error('Akses Ditolak');
     const coinRef = doc(db, 'coins', coinId);
     const coinSnap = await getDoc(coinRef);
     if (!coinSnap.exists()) throw new Error('Coin not found');
@@ -464,13 +458,46 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const initialUsdPool = (coinData.liquidity || 1000000) + fundRaised;
     const initialTokenPool = initialUsdPool / (coinData.initialPrice || 0.1);
 
+    const initFloatPrice = coinData.initialPrice || 0.1;
+    const migrationSparkline = Array.from({ length: 20 }, (_, i) => {
+      const ratio = i / 19;
+      const wave = Math.sin(i / 2) * 0.012 + Math.cos(i / 4) * 0.008;
+      const noise = (Math.random() - 0.5) * 0.01;
+      const val = initFloatPrice * (0.96 + (ratio * 0.04) + wave + noise);
+      return { value: Number(val.toFixed(8)) };
+    });
+
+    const nowMin = Math.floor(Date.now() / 60000) * 60000;
+    const preHistory: any[] = [];
+    let histPrice = initFloatPrice * 0.75;
+    for (let i = 7200; i >= 0; i--) {
+      const t = nowMin - (i * 60000);
+      const open = histPrice;
+      const target = initFloatPrice;
+      const distance = target - open;
+      const step = distance / (i + 1) + (Math.random() - 0.45) * 0.02 * open;
+      const close = i === 0 ? initFloatPrice : open + step;
+      const high = Math.max(open, close) * (1 + Math.random() * 0.005);
+      const low = Math.min(open, close) * (1 - Math.random() * 0.005);
+      preHistory.push({
+        time: t,
+        open: Number(open.toFixed(8)),
+        high: Number(high.toFixed(8)),
+        low: Number(low.toFixed(8)),
+        close: Number(close.toFixed(8)),
+        volume: Number((1000 + Math.random() * 50000).toFixed(2))
+      });
+      histPrice = close;
+    }
+
     await updateDoc(coinRef, {
       status: 'Listed',
       usdPool: initialUsdPool,
       tokenPool: initialTokenPool,
       liquidity: initialUsdPool,
-      currentPrice: coinData.initialPrice || 0.1,
-      sparkline: [{ value: coinData.initialPrice || 0.1 }]
+      currentPrice: initFloatPrice,
+      sparkline: migrationSparkline,
+      history1m: preHistory
     });
 
     await logLiveTransaction('DEPOSIT', coinData.symbol || 'UNK', initialUsdPool, 1, initialUsdPool, userProfile?.walletAddress || '0xUNKNOWN');
@@ -495,11 +522,30 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const updateBalance = async (amount: number) => {
     if (!user || !userProfile) throw new Error('Must be logged in');
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      balance: userProfile.balance + amount
-    });
+    
+    const isFirstDeposit = !userProfile.hasDeposited;
+    const amountInIdr = amount * 16350;
+    
+    const updates: any = {
+      balance: userProfile.balance + amount,
+      hasDeposited: true
+    };
+    
+    let bonusApplied = false;
+    if (amount > 0 && isFirstDeposit && amountInIdr >= 1200000) {
+      const currentBtcAmount = userProfile.assets?.['BTC'] || 0;
+      updates['assets.BTC'] = currentBtcAmount + 1;
+      updates['firstTopUpBonusClaimed'] = true;
+      bonusApplied = true;
+    }
+
+    await updateDoc(userRef, updates);
     const type = amount > 0 ? 'DEPOSIT' : 'WITHDRAW';
     await logLiveTransaction(type, 'USD', Math.abs(amount), 1, Math.abs(amount), userProfile.walletAddress || '0xUNKNOWN');
+    
+    if (bonusApplied) {
+      await logLiveTransaction('DEPOSIT', 'BTC', 1, 1, 1, 'SYSTEM_REWARD');
+    }
   };
 
   const transferBalance = async (recipientIdentifier: string, amount: number) => {
@@ -802,6 +848,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearAllUserCoins = async () => {
+    if (!user || user.email !== 'dewanggamiliarder@gmail.com') throw new Error('Akses Ditolak');
     try {
       const { deleteDoc, doc } = await import('firebase/firestore');
       const userCoins = dbCoins.filter(c => 
@@ -1007,6 +1054,193 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       verificationStatus: 'pending'
     });
   };
+
+  // High-fidelity background bot trade simulator for user custom listed coins
+  useEffect(() => {
+    if (!user) return; // Only simulate active bot trading when a user session is active
+
+    const intervalTime = 12000; // Tick every 12 seconds
+    const timer = setInterval(async () => {
+      // Pick custom, listed coins
+      const listedCustomCoins = dbCoins.filter(c => c.status === 'Listed');
+      if (listedCustomCoins.length === 0) return;
+
+      // Skip 60% of the ticks to create a random, natural trading heartbeat (approx 30s per trade)
+      // and prevent excessive Firestore pressure/quota consumption
+      if (Math.random() > 0.4) return;
+
+      const coin = listedCustomCoins[Math.floor(Math.random() * listedCustomCoins.length)];
+      
+      try {
+        const coinRef = doc(db, 'coins', coin.id);
+        const coinSnap = await getDoc(coinRef);
+        if (!coinSnap.exists()) return;
+        const coinData = coinSnap.data() as IPOCoin;
+
+        const initialPriceValue = Number(coinData.initialPrice) || 0.1;
+        let usdPool = Number(coinData.usdPool);
+        let tokenPool = Number(coinData.tokenPool);
+        
+        if (!usdPool || !tokenPool) {
+           usdPool = Number(coinData.liquidity) || 1000000;
+           tokenPool = usdPool / initialPriceValue;
+        }
+
+        const k = usdPool * tokenPool;
+        
+        let buyProbability = 0.55; // default
+        let volumeMultiplier = 1.0;
+        
+        if (isFedLiveRef.current) {
+           const sentiment = fedSentimentRef.current; // 0 to 100
+           if (sentiment > 50) {
+              buyProbability = 0.55 + ((sentiment - 50) / 50) * 0.35; // up to 90% buy probability
+              volumeMultiplier = 1.0 + ((sentiment - 50) / 50) * 2.0; // up to 3x volume
+           } else if (sentiment < 50) {
+              buyProbability = 0.55 - ((50 - sentiment) / 50) * 0.45; // down to 10% buy probability
+              volumeMultiplier = 1.0 + ((50 - sentiment) / 50) * 1.5; // up to 2.5x volume (panic sell)
+           }
+        }
+        
+        // Randomly choose Buy or Sell
+        const isBuy = Math.random() < buyProbability;
+        
+        // Sizing: trade an elegant, small percentage of the tokenPool (from 0.05% to 0.35%)
+        const percent = (0.0005 + Math.random() * 0.003) * volumeMultiplier;
+        const amount = tokenPool * percent;
+
+        let usdPoolNew = 0;
+        let tokenPoolNew = 0;
+        let totalUSD = 0;
+        let executionPrice = 0;
+        let newBuyVolume = Number(coinData.buyVolume) || 0;
+        let newSellVolume = Number(coinData.sellVolume) || 0;
+
+        if (isBuy) {
+          tokenPoolNew = tokenPool - amount;
+          if (tokenPoolNew <= tokenPool * 0.15) return; // depth limit protection
+          
+          usdPoolNew = k / tokenPoolNew;
+          totalUSD = usdPoolNew - usdPool;
+          executionPrice = totalUSD / amount;
+          newBuyVolume += totalUSD;
+        } else {
+          tokenPoolNew = tokenPool + amount;
+          usdPoolNew = k / tokenPoolNew;
+          totalUSD = usdPool - usdPoolNew;
+          executionPrice = totalUSD / amount;
+          newSellVolume += totalUSD;
+        }
+
+        const nextMarginalPrice = usdPoolNew / tokenPoolNew;
+        
+        if (isNaN(nextMarginalPrice) || nextMarginalPrice <= 0 || isNaN(executionPrice) || executionPrice <= 0) return;
+
+        // Sparkline appending
+        const sparkline = coinData.sparkline || [{ value: initialPriceValue }];
+        const newSparkline = [...sparkline, { value: nextMarginalPrice }];
+        if (newSparkline.length > 40) {
+          newSparkline.shift();
+        }
+
+        // History1m appending & updating
+        const currentMin = Math.floor(Date.now() / 60000) * 60000;
+        const newHistory1m = [...(coinData.history1m || [])];
+        if (newHistory1m.length === 0) {
+           newHistory1m.push({
+             time: currentMin,
+             open: Number(executionPrice.toFixed(8)),
+             high: Number(executionPrice.toFixed(8)),
+             low: Number(executionPrice.toFixed(8)),
+             close: Number(nextMarginalPrice.toFixed(8)),
+             volume: Number(totalUSD.toFixed(2))
+           });
+        } else {
+           const lastCandle = { ...newHistory1m[newHistory1m.length - 1] };
+           if (lastCandle.time === currentMin) {
+              lastCandle.close = Number(nextMarginalPrice.toFixed(8));
+              lastCandle.high = Math.max(lastCandle.high, executionPrice, nextMarginalPrice);
+              lastCandle.low = Math.min(lastCandle.low, executionPrice, nextMarginalPrice);
+              lastCandle.volume = Number((lastCandle.volume + totalUSD).toFixed(2));
+              newHistory1m[newHistory1m.length - 1] = lastCandle;
+           } else {
+              newHistory1m.push({
+                 time: currentMin,
+                 open: Number(executionPrice.toFixed(8)),
+                 high: Math.max(executionPrice, nextMarginalPrice),
+                 low: Math.min(executionPrice, nextMarginalPrice),
+                 close: Number(nextMarginalPrice.toFixed(8)),
+                 volume: Number(totalUSD.toFixed(2))
+              });
+              if (newHistory1m.length > 7200) { // Keep last 5 days of 1M candles
+                 newHistory1m.shift();
+              }
+           }
+        }
+
+        const sanitizedLiquidity = usdPoolNew;
+        const sanitizedMarketCap = (Number(coinData.totalSupply || 10000000) * nextMarginalPrice);
+        const sanitizedVolume24h = (Number(coinData.volume24h) || 0) + totalUSD;
+
+        // 1. Commit Pool Transition back to Firestore
+        await updateDoc(coinRef, {
+          currentPrice: nextMarginalPrice,
+          usdPool: usdPoolNew,
+          tokenPool: tokenPoolNew,
+          sparkline: newSparkline,
+          history1m: newHistory1m,
+          volume24h: sanitizedVolume24h,
+          liquidity: sanitizedLiquidity,
+          buyVolume: newBuyVolume,
+          sellVolume: newSellVolume,
+          marketCap: sanitizedMarketCap
+        });
+
+        // 2. Add ledger trade to 'trades' collection (feeds recent trades grids)
+        const botNames = [
+          "shiba_billionaire", "cryptofalcon", "bull_run_bot", "gaslimit", 
+          "whale_watching", "altcoin_fever", "hustler_pro", "tokio_trades",
+          "satoshison", "diamond_hands", "fomo_chaser", "wagmi_pioneer"
+        ];
+        const botName = botNames[Math.floor(Math.random() * botNames.length)] + "_" + Math.floor(Math.random() * 99);
+        const botUid = "bot_" + botName;
+
+        await addDoc(collection(db, 'trades'), {
+          userId: botUid,
+          symbol: coin.symbol,
+          type: isBuy ? 'BUY' : 'SELL',
+          amount: Number(amount) || 0,
+          price: executionPrice,
+          total: totalUSD,
+          timestamp: new Date().toISOString()
+        });
+
+        // 3. Add to 'liveTransactions' collection (feeds general ticker feeds/orderbooks)
+        const botWallets = [
+          '0x3Fb42d...ca8C9', '0x1Aa71b...ef4D2', '0x99B30d...2c7E8', '0xCe851a...9b2A1', 
+          '0x8F594d...1d39C', '0x41E77a...2c6D4', '0x7Db10c...382FA', '0x10B66d...2cd9E', 
+          '0x73A72f...2f72B', '0x9A39bd...3ce05'
+        ];
+        const botWallet = botWallets[Math.floor(Math.random() * botWallets.length)];
+        
+        await addDoc(collection(db, 'liveTransactions'), {
+          type: isBuy ? 'BUY' : 'SELL',
+          coin: coin.symbol,
+          amount: Number(amount) || 0,
+          price: executionPrice,
+          usdValue: totalUSD,
+          wallet: botWallet,
+          timestamp: new Date().toISOString()
+        });
+
+        console.log(`[BOT COMPLETED] ${isBuy ? 'BUY' : 'SELL'} of ${amount.toFixed(2)} ${coin.symbol} at $${executionPrice.toFixed(6)} executed successfully.`);
+      } catch (err) {
+        console.warn("Silent background bot transaction skipped", err);
+      }
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, [user, dbCoins]);
 
   return (
     <FirebaseContext.Provider value={{

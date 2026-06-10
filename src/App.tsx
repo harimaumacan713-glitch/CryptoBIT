@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Navbar from './components/Navbar';
 import TrendingStocks from './components/TrendingStocks';
@@ -20,10 +20,13 @@ import Watchlist from './components/Watchlist';
 import ProfilePage from './components/ProfilePage';
 import SplashLoginScreen from './components/SplashLoginScreen';
 import Chartbit from './components/Chartbit';
-import Academy from './components/Academy';
-import { Clock, History, Flame, Diamond, Truck, Calendar, Headphones, MoreHorizontal, LayoutPanelLeft, X, Trophy, Medal, Award, Sparkles, Crown, TrendingUp } from 'lucide-react';
+import FedDashboard from './components/FedDashboard';
+import FedBroadcast from './components/FedBroadcast';
+import DepositAdmin from './components/DepositAdmin';
+import { Clock, History, Flame, Diamond, Truck, Calendar, Headphones, MoreHorizontal, LayoutPanelLeft, X, Trophy, Medal, Award, Sparkles, Crown, TrendingUp, ShieldCheck } from 'lucide-react';
 import { useFirebase } from './components/FirebaseProvider';
 import { AnimatePresence, motion } from 'motion/react';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Stream');
@@ -35,7 +38,18 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'support'; text: string }>>([
     { sender: 'support', text: 'Halo! Selamat datang di Pusat Bantuan KriptoBit Pro. Ada yang bisa kami bantu seputar bursa AMM, Chartbit, fitur diskusi Academy, atau penawaran IPO hari ini?' }
   ]);
-  const { user, loading } = useFirebase();
+  const [isFedLive, setIsFedLive] = useState(false);
+  const { user, loading, db } = useFirebase();
+
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, 'system', 'fed_broadcast'), (docSnap) => {
+      if (docSnap.exists()) {
+        setIsFedLive(docSnap.data().isLive);
+      }
+    });
+    return () => unsub();
+  }, [db]);
 
   if (loading) {
      return <div className="min-h-screen bg-slate-50" />;
@@ -47,6 +61,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-[#00AE64]/30">
+      {isFedLive && (
+        <div 
+           className="bg-red-600 text-white w-full py-2 px-4 flex items-center justify-center gap-3 cursor-pointer shadow-[0_4px_10px_rgba(220,38,38,0.2)] relative z-50 animate-pulse border-b border-red-700"
+           onClick={() => { setActiveTab('Live Broadcast'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+        >
+           <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+           <span className="text-xs font-black tracking-widest uppercase items-center drop-shadow-md">FEDERAL RESERVE CHAIRMAN LIVE</span>
+           <span className="text-[10px] uppercase font-semibold border border-white/40 px-2 py-0.5 rounded ml-2 hidden sm:block">Watch Now</span>
+        </div>
+      )}
       <Header setActiveTab={setActiveTab} />
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       
@@ -122,8 +146,12 @@ export default function App() {
              <div className="mt-4"><BrokerAnalysis /></div>
           ) : activeTab === 'Chartbit' ? (
              <Chartbit />
-          ) : activeTab === 'Academy' ? (
-             <Academy />
+          ) : activeTab === 'Fed System' && user?.email === 'dewanggamiliarder@gmail.com' ? (
+             <FedDashboard />
+          ) : activeTab === 'Live Broadcast' ? (
+             <FedBroadcast />
+          ) : activeTab === 'Deposit Admin' && user?.email === 'dewanggamiliarder@gmail.com' ? (
+             <DepositAdmin />
           ) : (
             <div className="flex flex-col items-center justify-center p-20 bg-white border border-slate-200 rounded-lg shadow-sm mt-4">
                <h2 className="text-xl font-bold text-slate-400 uppercase tracking-widest">{activeTab} Section</h2>
@@ -175,22 +203,34 @@ export default function App() {
                   className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Watchlist' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
                   title="Watchlist Koin"
                 />
-                <Diamond 
-                  onClick={() => {
-                    setActiveTab('Academy');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Academy' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
-                  title="Academy Web3"
-                />
-                <Truck 
-                  onClick={() => {
-                    setActiveTab('Create Coin');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Create Coin' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
-                  title="Launchpad Baru"
-                />
+                {user?.email === 'dewanggamiliarder@gmail.com' && (
+                  <>
+                    <Diamond 
+                      onClick={() => {
+                        setActiveTab('Fed System');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Fed System' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
+                      title="Federal Reserve System"
+                    />
+                    <ShieldCheck 
+                      onClick={() => {
+                        setActiveTab('Deposit Admin');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Deposit Admin' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
+                      title="Deposit Admin"
+                    />
+                    <Truck 
+                      onClick={() => {
+                        setActiveTab('Create Coin');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`w-5 h-5 cursor-pointer hover:text-[#00AE64] transition-colors ${activeTab === 'Create Coin' ? 'text-[#00AE64] scale-110' : 'text-slate-450'}`}
+                      title="Launchpad Baru"
+                    />
+                  </>
+                )}
                 <Calendar 
                   onClick={() => {
                     setActiveTab('Crypto IPO');

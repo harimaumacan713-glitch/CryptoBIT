@@ -5,19 +5,7 @@
 
 import { LayoutGrid, User, Star, Briefcase, BookOpen, BarChart2, PieChart, Search, PlayCircle, GraduationCap, Film, MoreHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
-
-const navItems = [
-  { icon: LayoutGrid, label: 'Stream' },
-  { icon: User, label: 'Profile' },
-  { icon: Star, label: 'Watchlist' },
-  { icon: Briefcase, label: 'Portfolio' },
-  { icon: BookOpen, label: 'Orderbook' },
-  { icon: BarChart2, label: 'Chartbit' },
-  { icon: PieChart, label: 'Crypto IPO' },
-  { icon: Search, label: 'Create Coin' },
-  { icon: PlayCircle, label: 'Broker Analysis' },
-  { icon: GraduationCap, label: 'Academy' },
-];
+import { useFirebase } from './FirebaseProvider';
 
 interface NavbarProps {
   activeTab: string;
@@ -25,6 +13,25 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
+  const { user } = useFirebase();
+  const isFounder = user?.email === 'dewanggamiliarder@gmail.com';
+
+  const navItems = [
+    { icon: LayoutGrid, label: 'Stream' },
+    { icon: User, label: 'Profile' },
+    { icon: Star, label: 'Watchlist' },
+    { icon: Briefcase, label: 'Portfolio' },
+    { icon: BookOpen, label: 'Orderbook' },
+    { icon: BarChart2, label: 'Chartbit' },
+    { icon: PieChart, label: 'Crypto IPO' },
+    ...(isFounder ? [{ icon: Search, label: 'Create Coin' }] : []),
+    { icon: PlayCircle, label: 'Broker Analysis' },
+    ...(isFounder ? [
+      { icon: GraduationCap, label: 'Fed System' },
+      { icon: Film, label: 'Live Broadcast' }
+    ] : []),
+  ];
+
   return (
     <nav className="bg-white/95 border-b border-slate-200 overflow-x-auto no-scrollbar sticky top-16 z-40 shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 flex items-center">

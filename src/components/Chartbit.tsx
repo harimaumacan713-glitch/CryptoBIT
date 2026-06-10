@@ -36,6 +36,7 @@ import {
   Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import TradingViewWidget from './TradingViewWidget';
 
 const STATIC_INITIAL_COINS = [
   { symbol: 'BTC', name: 'Bitcoin', price: 92450.25, change: 1.25, changePercent: 1.35, sparkline: [] },
@@ -50,7 +51,8 @@ export default function Chartbit() {
   const liveCryptos = realTimeCryptos;
   
   const [selectedSymbol, setSelectedSymbol] = useState('BTC');
-  const [timeframe, setTimeframe] = useState<'1m' | '5m' | '1H' | '1D'>('1m');
+  const isStandard = useMemo(() => ['BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'ADA'].includes(selectedSymbol), [selectedSymbol]);
+  const [timeframe, setTimeframe] = useState<string>('1m');
   const [indicator, setIndicator] = useState<'NONE' | 'MA' | 'EMA' | 'RSI'>('NONE');
   
   // Trade formulation
@@ -79,6 +81,15 @@ export default function Chartbit() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const formatPriceVal = (val: number, decimalOverride?: number) => {
+    if (decimalOverride !== undefined) {
+      return val.toLocaleString(undefined, { minimumFractionDigits: decimalOverride, maximumFractionDigits: decimalOverride });
+    }
+    const absVal = Math.abs(val);
+    const precision = absVal < 0.0001 ? 8 : absVal < 0.01 ? 6 : absVal < 1 ? 4 : absVal < 10 ? 3 : 2;
+    return val.toLocaleString(undefined, { minimumFractionDigits: precision, maximumFractionDigits: precision });
+  };
 
   // Active highlighted cryptocurrency
   const selectedCoinData = useMemo(() => {
@@ -247,30 +258,85 @@ export default function Chartbit() {
 
       // Fallback generator if all API networks fail/are offline
       if (baseCandles.length === 0) {
-        const baselinePrice = selectedCoinData.price || 100;
-        const seed: Candle[] = [];
-        let current = baselinePrice;
-        for (let i = 59; i >= 0; i--) {
-          const d = new Date(Date.now() - i * 60000);
-          const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const stepPercent = (Math.sin(i / 3) * 0.015) + ((Math.random() - 0.5) * 0.015);
-          const open = current;
-          current = current * (1 + stepPercent);
-          const close = current;
-          const high = Math.max(open, close) * (1 + Math.random() * 0.005);
-          const low = Math.min(open, close) * (1 - Math.random() * 0.005);
+        // Special logic for Custom Coins: Use single source of truth from Firestore
+        const isCustomCoin = coins.find(c => c.symbol === selectedSymbol && c.status === 'Listed');
+        
+        if (isCustomCoin && isCustomCoin.history1m && isCustomCoin.history1m.length > 0) {
+          const rawHistory = [...isCustomCoin.history1m];
 
-          seed.push({
-            time: d.getTime(),
-            timeStr,
-            open,
-            high,
-            low,
-            close,
-            volume: 1000 + Math.random() * 95000
-          });
+          // Determine the aggregation interval based on selected timeframe
+          const intervalMap: Record<string, number> = {
+            '1m': 60000,
+            '5m': 300000,
+            '15m': 900000,
+            '30m': 1800000,
+            '1H': 3600000,
+            '4H': 14400000,
+            '1D': 86400000,
+            '1W': 604800000,
+            '1M': 2592000000 // approx 30 days
+          };
+          const intervalMs = intervalMap[timeframe] || 60000;
+
+          const agg = [];
+          let currentBundle: any = null;
+          
+          for (const candle of rawHistory) {
+             const periodTime = Math.floor(candle.time / intervalMs) * intervalMs;
+             if (!currentBundle || currentBundle.time !== periodTime) {
+                 if (currentBundle) agg.push(currentBundle);
+                 const d = new Date(periodTime);
+                 currentBundle = {
+                    time: periodTime,
+                    timeStr: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                    volume: candle.volume
+                 };
+             } else {
+                 currentBundle.high = Math.max(currentBundle.high, candle.high);
+                 currentBundle.low = Math.min(currentBundle.low, candle.low);
+                 currentBundle.close = candle.close;
+                 currentBundle.volume += candle.volume;
+             }
+          }
+          if (currentBundle) agg.push(currentBundle);
+
+          baseCandles = agg.slice(-60); // Keep max 60 candles for visual fit
+
+        } else {
+          // Absolute zero fallback using Math walker (only for totally unknown standard coins or very weird states)
+          const baselinePrice = selectedCoinData.price || 100;
+          const seed: Candle[] = [];
+          let current = baselinePrice;
+          
+          // Generate backwards to ensure the final (most recent) candleclose is exactly the baseline price
+          for (let i = 0; i < 60; i++) {
+            const d = new Date(Date.now() - i * 60000);
+            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const stepPercent = (Math.sin(i / 3) * 0.008) + ((Math.random() - 0.5) * 0.01);
+            
+            const close = current;
+            const open = current / (1 + stepPercent);
+            const high = Math.max(open, close) * (1 + Math.random() * 0.004);
+            const low = Math.min(open, close) * (1 - Math.random() * 0.004);
+
+            seed.unshift({
+              time: d.getTime(),
+              timeStr,
+              open,
+              high,
+              low,
+              close,
+              volume: 1000 + Math.random() * 95000
+            });
+            
+            current = open;
+          }
+          baseCandles = seed;
         }
-        baseCandles = seed;
       }
 
       if (active) {
@@ -482,7 +548,7 @@ export default function Chartbit() {
 
                   <div className="text-right">
                     <span className="font-black text-xs block text-slate-800 font-mono">
-                      ${(crypto.price || 0.1).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                      ${formatPriceVal(crypto.price || 0.1)}
                     </span>
                     <span className={`text-[10px] font-black font-mono flex items-center justify-end ${positive ? 'text-[#00AE64]' : 'text-rose-500'}`}>
                       {positive ? '+' : ''}{(crypto.changePercent || 0).toFixed(2)}%
@@ -511,7 +577,7 @@ export default function Chartbit() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">{selectedSymbol}/USDT</h2>
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">{isStandard ? `${selectedSymbol}/USDT` : `VIAX:${selectedSymbol}/USD`}</h2>
                     <span className="text-[10px] uppercase font-bold text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded">Spot Trading</span>
                   </div>
                   <p className="text-xs text-slate-500 font-medium">{selectedCoinData.name}</p>
@@ -523,7 +589,7 @@ export default function Chartbit() {
                  <div className="text-right">
                     <span className="text-[9px] uppercase font-bold text-slate-500 block">Harga Terkini</span>
                     <span className="text-xl font-black text-slate-800 font-mono block">
-                      ${(selectedCoinData.price || 1.0).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                      ${formatPriceVal(selectedCoinData.price || 1.0)}
                     </span>
                  </div>
                  <div className="text-right border-l border-slate-200 pl-5">
@@ -533,16 +599,24 @@ export default function Chartbit() {
                       {isPositive ? '+' : ''}{(selectedCoinData.changePercent || 0).toFixed(2)}%
                     </span>
                  </div>
+                 <div className="text-right border-l border-slate-200 pl-5 hidden md:block">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Volume 24 Jam</span>
+                    <span className="text-sm font-black font-mono text-slate-800">${((selectedCoinData.volume24h || (selectedCoinData.price || 1) * 1500000) / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })}K</span>
+                 </div>
+                 <div className="text-right border-l border-slate-200 pl-5 hidden lg:block">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block">Market Cap</span>
+                    <span className="text-sm font-black font-mono text-slate-800">${((selectedCoinData.marketCap || (selectedCoinData.price || 1) * 100000000) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 })}M</span>
+                 </div>
               </div>
             </div>
 
             {/* Timeframe & Chart Tools */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-slate-50 p-2 rounded-lg border border-slate-200/60">
               <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-slate-200 text-[11px] font-bold">
-                {(['1m', '5m', '1H', '1D'] as const).map(tf => (
+                {(['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1M'] as const).map(tf => (
                   <button
                     key={tf}
-                    onClick={() => setTimeframe(tf)}
+                    onClick={() => setTimeframe(tf as any)}
                     className={`px-3 py-1 rounded cursor-pointer transition-colors ${timeframe === tf ? 'bg-[#00AE64] text-white font-black' : 'text-slate-500 hover:text-slate-800'}`}
                   >
                     {tf}
@@ -571,7 +645,7 @@ export default function Chartbit() {
               </div>
             </div>
 
-            {/* Real-time OHLV Hover and Info overlay bar */}
+             {/* Real-time OHLV Hover and Info overlay bar */}
             <div className="mb-4">
               {currentCandle ? (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-slate-100 border border-slate-200 p-2.5 rounded-lg text-[11px] font-mono select-none">
@@ -579,10 +653,10 @@ export default function Chartbit() {
                     <Sparkles className="w-3 h-3 text-[#00AE64]" /> DATABAR:
                   </span>
                   <span className="text-slate-400">TIME: <span className="text-slate-800">{currentCandle.timeStr}</span></span>
-                  <span className="text-slate-400">O: <span className="text-slate-800">${currentCandle.open.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-400">H: <span className="text-emerald-600 font-bold">${currentCandle.high.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-400">L: <span className="text-rose-600 font-bold">${currentCandle.low.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
-                  <span className="text-slate-400">C: <span className={`font-black ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-600'}`}>${currentCandle.close.toLocaleString(undefined, { maximumFractionDigits: 3 })}</span></span>
+                  <span className="text-slate-400">O: <span className="text-slate-800">${formatPriceVal(currentCandle.open)}</span></span>
+                  <span className="text-slate-400">H: <span className="text-emerald-600 font-bold">${formatPriceVal(currentCandle.high)}</span></span>
+                  <span className="text-slate-400">L: <span className="text-rose-600 font-bold">${formatPriceVal(currentCandle.low)}</span></span>
+                  <span className="text-slate-400">C: <span className={`font-black ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-600'}`}>${formatPriceVal(currentCandle.close)}</span></span>
                   <span className="text-slate-400">VOL: <span className="text-slate-800 font-bold">{Math.round(currentCandle.volume).toLocaleString()}</span></span>
                   <span className="text-slate-400">CHG: <span className={`font-extrabold ${currentCandle.close >= currentCandle.open ? 'text-[#00AE64]' : 'text-rose-600'}`}>{((currentCandle.close - currentCandle.open) / currentCandle.open * 100).toFixed(2)}%</span></span>
                 </div>
@@ -593,200 +667,51 @@ export default function Chartbit() {
               )}
             </div>
 
-            {/* Recharts Area Canvas -> Replaced with interactive Candlestick SVG */}
-            <div className="h-96 w-full relative bg-slate-50/75 rounded-lg border border-slate-200 overflow-hidden select-none">
-              {chartLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xs z-10 gap-3">
-                  <Loader2 className="w-8 h-8 text-[#00AE64] animate-spin" />
-                  <span className="text-xs font-bold text-slate-500 tracking-wider">MENGHUBUNGKAN BURSA REAL-TIME...</span>
-                </div>
-              ) : null}
-
-              {candles.length > 0 && (
-                <svg 
-                  ref={svgRef}
-                  width="100%" 
-                  height="100%" 
-                  viewBox="0 0 1000 400" 
-                  preserveAspectRatio="none"
-                  className="cursor-crosshair overflow-visible"
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  {/* Grid Lines Underlay */}
-                  {priceMath.grLines.map((gl, i) => (
-                    <g key={i}>
-                      <line 
-                        x1="10" 
-                        y1={gl.y} 
-                        x2="920" 
-                        y2={gl.y} 
-                        stroke="#e2e8f0" 
-                        strokeWidth="1" 
-                        strokeDasharray="4 4" 
-                        opacity="0.95" 
-                      />
-                      <text 
-                        x="930" 
-                        y={gl.y + 4} 
-                        fill="#64748b" 
-                        fontSize="10" 
-                        fontFamily="monospace" 
-                        textAnchor="start"
-                      >
-                        ${gl.priceVal.toLocaleString(undefined, { maximumFractionDigits: selectedSymbol === 'XRP' || selectedSymbol === 'SOL' ? 4 : 2 })}
-                      </text>
-                    </g>
-                  ))}
-
-                  {/* Horizontal indicators logic (OB/OS boundaries for RSI or standard view) */}
-                  {indicator === 'RSI' ? (
-                    <>
-                      {/* RSIOB / RSIOS thresholds */}
-                      <rect x="10" y="128" width="910" height="144" fill="#a855f7" fillOpacity="0.04" />
-                      <line x1="10" y1="128" x2="920" y2="128" stroke="#c084fc" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                      <line x1="10" y1="272" x2="920" y2="272" stroke="#c084fc" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                      <text x="930" y="132" fill="#8b5cf6" fontSize="9" fontFamily="monospace">70 (OB)</text>
-                      <text x="930" y="276" fill="#8b5cf6" fontSize="9" fontFamily="monospace">30 (OS)</text>
-
-                      {/* RSI Live Trend Path */}
-                      <path 
-                        d={`M ${candles.map((c, idx) => c.rsi !== undefined ? `${xMath.getValX(idx)},${380 - (c.rsi / 100 * 360)}` : '').filter(Boolean).join(' ')}`}
-                        fill="transparent" 
-                        stroke="#8b5cf6" 
-                        strokeWidth="2" 
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+            {isStandard ? (
+              <TradingViewWidget symbol={selectedSymbol} timeframe={timeframe} />
+            ) : (
+              <div 
+                className="h-96 w-full relative bg-slate-50/50 rounded-lg border border-slate-200 overflow-hidden select-none"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                {candles.length > 0 ? (
+                  <svg 
+                    ref={svgRef}
+                    width="100%" 
+                    height="100%" 
+                    viewBox="0 0 1000 400" 
+                    preserveAspectRatio="none"
+                    className="cursor-crosshair overflow-visible"
+                  >
+                    {/* Candlestick drawing */}
+                    {candles.map((c, idx) => {
+                      const cx = xMath.getValX(idx);
+                      const yOpen = priceMath.getValY(c.open);
+                      const yClose = priceMath.getValY(c.close);
+                      const yHigh = priceMath.getValY(c.high);
+                      const yLow = priceMath.getValY(c.low);
+                      const isBullish = c.close >= c.open;
+                      const mainColor = isBullish ? '#00AE64' : '#e11d48';
                       
-                      {/* RSI Indicator Label Tag */}
-                      <text x="20" y="35" fill="#8b5cf6" fontSize="10" fontFamily="sans-serif" fontWeight="bold">RSI (14)</text>
-                    </>
-                  ) : (
-                    <>
-                      {/* Candlestick drawing */}
-                      {candles.map((c, idx) => {
-                        const cx = xMath.getValX(idx);
-                        const yOpen = priceMath.getValY(c.open);
-                        const yClose = priceMath.getValY(c.close);
-                        const yHigh = priceMath.getValY(c.high);
-                        const yLow = priceMath.getValY(c.low);
-                        const isBullish = c.close >= c.open;
-                        const mainColor = isBullish ? '#00AE64' : '#e11d48';
-                        
-                        const bodyY = Math.min(yOpen, yClose);
-                        const bodyHeight = Math.max(1.5, Math.abs(yOpen - yClose));
-                        const rWidth = xMath.getCandleWidth();
-                        const rX = cx - rWidth / 2;
+                      const bodyY = Math.min(yOpen, yClose);
+                      const bodyHeight = Math.max(1.5, Math.abs(yOpen - yClose));
+                      const rWidth = xMath.getCandleWidth();
+                      const rX = cx - rWidth / 2;
 
-                        return (
-                          <g key={idx}>
-                            {/* High-Low Wick line */}
-                            <line 
-                              x1={cx} 
-                              y1={yHigh} 
-                              x2={cx} 
-                              y2={yLow} 
-                              stroke={mainColor} 
-                              strokeWidth="1.5" 
-                            />
-                            {/* Candle body */}
-                            <rect 
-                              x={rX} 
-                              y={bodyY} 
-                              width={rWidth} 
-                              height={bodyHeight} 
-                              fill={mainColor} 
-                              stroke={isBullish ? 'none' : mainColor}
-                              strokeWidth="1"
-                              rx="1.5"
-                            />
-                          </g>
-                        );
-                      })}
-
-                      {/* MA 14 Trend Line overlay */}
-                      {indicator === 'MA' && (
-                        <>
-                          <path 
-                            d={`M ${candles.map((c, idx) => c.ma !== undefined ? `${xMath.getValX(idx)},${priceMath.getValY(c.ma)}` : '').filter(Boolean).join(' ')}`}
-                            fill="transparent" 
-                            stroke="#1d4ed8" 
-                            strokeWidth="1.5" 
-                            strokeDasharray="4 2"
-                            opacity="0.9"
-                          />
-                          <text x="20" y="35" fill="#1d4ed8" fontSize="10" fontFamily="sans-serif" fontWeight="bold">MA (14)</text>
-                        </>
-                      )}
-
-                      {/* EMA 14 Trend Line overlay */}
-                      {indicator === 'EMA' && (
-                        <>
-                          <path 
-                            d={`M ${candles.map((c, idx) => c.ema !== undefined ? `${xMath.getValX(idx)},${priceMath.getValY(c.ema)}` : '').filter(Boolean).join(' ')}`}
-                            fill="transparent" 
-                            stroke="#ea580c" 
-                            strokeWidth="1.5" 
-                            opacity="0.9"
-                          />
-                          <text x="20" y="35" fill="#ea580c" fontSize="10" fontFamily="sans-serif" fontWeight="bold">EMA (14)</text>
-                        </>
-                      )}
-                    </>
-                  )}
-
-                  {/* Vertical time marker grids at bottom */}
-                  {candles.filter((_, idx) => idx % 10 === 0).map((tick, k) => {
-                    const idx = candles.indexOf(tick);
-                    const x = xMath.getValX(idx);
-                    return (
-                      <g key={k}>
-                        <line x1={x} y1="20" x2={x} y2="380" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 3" opacity="0.8" />
-                        <text x={x} y="394" fill="#64748b" fontSize="9" fontFamily="monospace" textAnchor="middle">{tick.timeStr}</text>
-                      </g>
-                    );
-                  })}
-
-                  {/* Interactive Cursor crosshair HUD */}
-                  {hoveredIdx !== null && hoverCoords && (
-                    <g>
-                      {/* Vertical line crosshair */}
-                      <line 
-                        x1={xMath.getValX(hoveredIdx)} 
-                        y1="10" 
-                        x2={xMath.getValX(hoveredIdx)} 
-                        y2="380" 
-                        stroke="#64748b" 
-                        strokeWidth="1" 
-                        strokeDasharray="4 4" 
-                        opacity="0.75" 
-                      />
-                      {/* Horizontal line crosshair */}
-                      <line 
-                        x1="10" 
-                        y1={hoverCoords.y} 
-                        x2="920" 
-                        y2={hoverCoords.y} 
-                        stroke="#64748b" 
-                        strokeWidth="1" 
-                        strokeDasharray="4 4" 
-                        opacity="0.75" 
-                      />
-                      {/* Pulse point at crosshair intersection */}
-                      <circle 
-                        cx={xMath.getValX(hoveredIdx)} 
-                        cy={hoverCoords.y} 
-                        r="4" 
-                        fill="#00AE64" 
-                        stroke="#ffffff" 
-                        strokeWidth="1.5" 
-                      />
-                    </g>
-                  )}
-                </svg>
-              )}
-            </div>
+                      return (
+                        <g key={idx}>
+                          <line x1={cx} y1={yHigh} x2={cx} y2={yLow} stroke={mainColor} strokeWidth="1.5" />
+                          <rect x={rX} y={bodyY} width={rWidth} height={bodyHeight} fill={mainColor} rx="1.5" />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">Loading Market Data...</div>
+                )}
+              </div>
+            )}
             
             {/* Visual absolute backdrop overlay info */}
             <div className="absolute right-4 bottom-4 text-right flex items-center gap-1.5">
@@ -896,7 +821,7 @@ export default function Chartbit() {
                   <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs space-y-1.5 font-bold">
                      <div className="flex justify-between text-slate-500">
                         <span>Harga Eksekusi Broker</span>
-                        <span className="text-slate-800 font-mono">${(selectedCoinData.price || 1.0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                        <span className="text-slate-800 font-mono">${formatPriceVal(selectedCoinData.price || 1.0)}</span>
                      </div>
                      <div className="flex justify-between text-slate-500">
                         <span>Total Nilai Transaksi</span>
@@ -954,6 +879,49 @@ export default function Chartbit() {
               </AnimatePresence>
             </div>
 
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mt-6">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Live Order Book & Trades</h3>
+            <div className="space-y-1 mt-3">
+              <div className="grid grid-cols-2 text-[10px] font-bold text-slate-400 mb-2 px-1">
+                <span>Harga (USD)</span>
+                <span className="text-right">Volume</span>
+              </div>
+              {/* Asks */}
+              <div className="space-y-0.5 mb-2">
+                {Array.from({length: 4}).map((_, i) => {
+                  const askPrice = (selectedCoinData.price || 1) * (1 + (4-i)*0.001);
+                  const askVol = Math.floor(Math.random() * 50000);
+                  const depth = Math.floor(Math.random() * 60) + 10;
+                  return (
+                    <div key={`ask-${i}`} className="grid grid-cols-2 text-[11px] font-mono relative py-0.5 px-1 group cursor-pointer hover:bg-slate-50">
+                      <div className="absolute right-0 top-0 bottom-0 bg-rose-500/10" style={{ width: `${depth}%` }} />
+                      <span className="text-rose-500 font-bold relative z-10">${formatPriceVal(askPrice)}</span>
+                      <span className="text-slate-700 text-right relative z-10">{askVol.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="py-2 border-y border-slate-100 flex items-center justify-center">
+                 <span className="text-sm font-black text-slate-800 font-mono">${formatPriceVal(selectedCoinData.price || 1.0)}</span>
+              </div>
+              {/* Bids */}
+              <div className="space-y-0.5 mt-2">
+                {Array.from({length: 4}).map((_, i) => {
+                  const bidPrice = (selectedCoinData.price || 1) * (1 - (i+1)*0.001);
+                  const bidVol = Math.floor(Math.random() * 50000);
+                  const depth = Math.floor(Math.random() * 60) + 10;
+                  return (
+                    <div key={`bid-${i}`} className="grid grid-cols-2 text-[11px] font-mono relative py-0.5 px-1 group cursor-pointer hover:bg-slate-50">
+                      <div className="absolute right-0 top-0 bottom-0 bg-[#00AE64]/10" style={{ width: `${depth}%` }} />
+                      <span className="text-[#00AE64] font-bold relative z-10">${formatPriceVal(bidPrice)}</span>
+                      <span className="text-slate-700 text-right relative z-10">{bidVol.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 

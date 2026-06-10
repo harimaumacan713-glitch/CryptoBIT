@@ -26,12 +26,24 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn() && isValidCoin(request.resource.data);
       allow update: if isSignedIn() && (
+        // Allow updating AMM fields if the coin is listed (so anybody/bots can trade it)
+        resource.data.status == "Listed" ||
         // Allow updating soldCount/investorCount (Public contribution)
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soldCount', 'investorCount']) ||
         // Allow creator to update their coin
         resource.data.creatorId == request.auth.uid
       );
       allow delete: if isSignedIn();
+    }
+
+    match /trades/{tradeId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+    }
+
+    match /liveTransactions/{txId} {
+      allow read: if true;
+      allow create: if isSignedIn();
     }
 
     match /orders/{orderId} {

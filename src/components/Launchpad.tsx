@@ -234,6 +234,16 @@ export default function Launchpad({ onComplete }: { onComplete: () => void }) {
     );
   }
 
+  if (user.email !== 'dewanggamiliarder@gmail.com') {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 md:p-20 bg-white border border-slate-200 rounded-xl shadow-sm mt-6 max-w-xl mx-auto text-center animate-fadeIn">
+        <AlertTriangle className="w-12 h-12 text-rose-500 mb-4" />
+        <h2 className="text-xl font-black text-slate-850">Akses Ditolak</h2>
+        <p className="text-slate-500 text-sm mt-2 max-w-sm">Hanya akun dewanggamiliarder@gmail.com yang diberikan izin untuk membuat koin di VIA X.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto mt-6">
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">

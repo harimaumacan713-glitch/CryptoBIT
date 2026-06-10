@@ -255,19 +255,27 @@ export default function AssetDetailModal({ coin, onClose }: AssetDetailModalProp
 
   // Dynamic charts helper
   const chartData = useMemo(() => {
-    const baseList = coin.sparkline && coin.sparkline.length > 0 
+    // If sparkline has fewer than 5 items, generate a beautiful historical walking chart ending at coin.price
+    const baseList = coin.sparkline && coin.sparkline.length >= 5 
       ? coin.sparkline.map(p => p.value)
-      : Array.from({ length: 16 }).map((_, i) => coin.price * (1 + Math.sin(i / 1.5) * 0.008));
+      : Array.from({ length: 20 }).map((_, i) => {
+          const ratio = i / 19;
+          const wave = Math.sin(i / 2) * 0.015 + Math.cos(i / 4) * 0.01;
+          const noise = (Math.random() - 0.5) * 0.01;
+          const multiplier = 0.96 + (ratio * 0.04) + wave + noise;
+          return coin.price * multiplier;
+        });
 
-    // Map base with real-time continuous ticker offset logic
+    // Map base exactly to avoid discrepancies with single source of truth
     return baseList.map((val, idx) => ({
       index: idx,
-      price: val * (1 + tickerOffset * (idx / baseList.length))
+      price: val
     }));
   }, [coin.sparkline, coin.price, tickerOffset]);
 
   // Unit string formatter helpers
   const formatPrice = (val: number) => {
+    if (val < 0.0001) return val.toFixed(8);
     if (val < 0.01) return val.toFixed(6);
     if (val < 1) return val.toFixed(4);
     if (val < 10) return val.toFixed(3);
