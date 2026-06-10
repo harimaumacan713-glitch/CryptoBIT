@@ -81,45 +81,17 @@ export default function App() {
             <>
               <TrendingStocks />
               
-              <div id="upcoming-web3-banner" className="bg-[#10061d] rounded-xl p-6 sm:p-8 mb-4 text-white relative overflow-hidden group border border-purple-500/20 shadow-2xl shadow-purple-950/25">
-                {/* Background Poster Image */}
-                <div className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-lighten pointer-events-none" style={{ backgroundImage: "url('/src/assets/images/web3_banner_1779983854222.png')" }}></div>
-                
-                {/* Highly reliable looping Award/Gold particles video */}
-                <video 
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline 
-                  className="absolute inset-0 w-full h-full object-cover opacity-75 pointer-events-none select-none transition-all duration-1000 group-hover:scale-[1.03]"
-                >
-                  <source src="https://cdn.pixabay.com/video/2021/04/12/70831-537380922_large.mp4" type="video/mp4" />
-                  <source src="https://cdn.pixabay.com/video/2016/11/14/6306-191599863_large.mp4" type="video/mp4" />
-                </video>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0e041a] via-transparent to-transparent"></div>
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="bg-gradient-to-r from-amber-500/20 to-purple-500/20 border border-amber-400/30 backdrop-blur-md px-3 py-1 rounded text-[10px] font-extrabold uppercase tracking-widest inline-block text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.25)]">
-                      Featured Event & Awards
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                  </div>
-                  
-                  <h2 className="text-2xl sm:text-3xl font-black italic tracking-tighter leading-none mb-2 bg-gradient-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)]">
-                    VIA X GLOBAL AWARDS
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-200 max-w-md font-semibold leading-relaxed mb-1">
-                    Apresiasi paling bergengsi bagi para legenda bursa VIA X yang mendominasi pasar AMM, mencetak ROI tertinggi, dan meluncurkan Launchpad tersukses musim ini!
-                  </p>
-                </div>
-                
-                <button 
-                  onClick={() => setIsWinnersModalOpen(true)}
-                  className="relative z-10 mt-5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider px-6 py-3 rounded-lg transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:-translate-y-0.5 active:translate-y-0 duration-200 cursor-pointer"
-                >
-                  Liat Pemenang
-                </button>
+              <div 
+                id="logistic-crypto-banner" 
+                onClick={() => setIsWinnersModalOpen(true)}
+                className="relative rounded-xl overflow-hidden mb-4 border border-slate-200 shadow-sm cursor-pointer group"
+              >
+                <img 
+                  src="/src/assets/images/logistic_crypto_banner_1781083525581.png" 
+                  alt="Logistic Crypto - Bursa Via X Indonesia" 
+                  referrerPolicy="no-referrer"
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.015]"
+                />
               </div>
               <PromoBanner />
               <div className="flex flex-col lg:flex-row gap-6 items-start">
